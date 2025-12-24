@@ -42,6 +42,7 @@ export default function History({ onSelect }: HistoryProps) {
                   src={item.thumbnail} 
                   alt="History Item" 
                   fill
+                  unoptimized
                   className="object-contain"
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                 />

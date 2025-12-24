@@ -70,7 +70,7 @@ export default function Gallery({ onSelect }: GalleryProps) {
           >
             <div className="w-full h-40 relative">
               <Image 
-                src={getProxiedUrl(tmpl.url)} 
+                src={tmpl.url} 
                 alt={tmpl.name} 
                 fill
                 className="object-cover"
@@ -95,6 +95,7 @@ export default function Gallery({ onSelect }: GalleryProps) {
                 src={tmpl.data} 
                 alt={tmpl.name} 
                 fill
+                unoptimized
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               />
