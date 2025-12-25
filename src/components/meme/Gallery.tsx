@@ -13,6 +13,9 @@ interface GalleryProps {
 const DEFAULT_TEMPLATES = [
   { name: 'Drake Hotline Bling', url: 'https://i.imgflip.com/30b1gx.jpg' },
   { name: 'Distracted Boyfriend', url: 'https://i.imgflip.com/1ur9b0.jpg' },
+  { name: 'Thinking Shaq', url: 'https://i.imgflip.com/1vjt74.gif' },
+  { name: 'Running Away Balloon', url: 'https://i.imgflip.com/261o3j.gif' },
+  { name: 'Left Exit 12 Off Ramp', url: 'https://i.imgflip.com/22bdq6.gif' },
   { name: 'Mocking Spongebob', url: 'https://i.imgflip.com/1otk96.jpg' },
   { name: 'Two Buttons', url: 'https://i.imgflip.com/1g8my4.jpg' },
   { name: 'Change My Mind', url: 'https://i.imgflip.com/24y43o.jpg' },
@@ -52,6 +55,8 @@ export default function Gallery({ onSelect }: GalleryProps) {
     return url;
   };
 
+  const isGif = (url: string) => url.toLowerCase().endsWith('.gif') || url.startsWith('data:image/gif');
+
   return (
     <div className="p-4 h-full overflow-y-auto">
       <div className="flex justify-between items-center mb-4">
@@ -75,6 +80,7 @@ export default function Gallery({ onSelect }: GalleryProps) {
                 src={tmpl.url} 
                 alt={tmpl.name} 
                 fill
+                unoptimized={isGif(tmpl.url)}
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               />
