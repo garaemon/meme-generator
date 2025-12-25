@@ -102,16 +102,16 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
 
     const setupBackgroundImage = (img: fabric.Image) => {
-      const scale = Math.min(
-        (fabricCanvas.width || 600) / (img.width || 1),
-        (fabricCanvas.height || 600) / (img.height || 1)
-      );
+      const width = img.width || 600;
+      const height = img.height || 600;
       
-      img.scale(scale);
+      // Resize canvas to match image dimensions
+      fabricCanvas.setDimensions({ width, height });
+      
       img.originX = 'left';
       img.originY = 'top';
-      img.left = (fabricCanvas.width! - img.width! * scale) / 2;
-      img.top = (fabricCanvas.height! - img.height! * scale) / 2;
+      img.left = 0;
+      img.top = 0;
       img.selectable = false;
       img.evented = false;
       
@@ -166,6 +166,8 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                 tempCanvas.getContext('2d')?.putImageData(frame.imageData, 0, 0);
                 
                 const img = new fabric.Image(tempCanvas);
+                // Configuration happens for each frame, but setupBackgroundImage 
+                // will set canvas size based on the last frame (which is fine as GIF frames should be same size)
                 return setupBackgroundImage(img);
               });
 
@@ -192,13 +194,13 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       return;
     }
     const iText = new fabric.IText('New Text', {
-      left: 100,
-      top: 100,
+      left: fabricCanvas.width! / 4,
+      top: fabricCanvas.height! / 4,
       fontFamily: 'Impact',
       fill: '#ffffff',
       stroke: '#000000',
       strokeWidth: 2,
-      fontSize: 40,
+      fontSize: Math.round(fabricCanvas.width! / 15),
     });
     fabricCanvas.add(iText);
     fabricCanvas.setActiveObject(iText);
@@ -245,16 +247,10 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           
           const img = new fabric.Image(tempCanvas);
           
-          // Re-apply scale and position logic
-          const scale = Math.min(
-            (fabricCanvas.width || 600) / (img.width || 1),
-            (fabricCanvas.height || 600) / (img.height || 1)
-          );
-          img.scale(scale);
           img.originX = 'left';
           img.originY = 'top';
-          img.left = (fabricCanvas.width! - img.width! * scale) / 2;
-          img.top = (fabricCanvas.height! - img.height! * scale) / 2;
+          img.left = 0;
+          img.top = 0;
           img.selectable = false;
           img.evented = false;
           
@@ -288,11 +284,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       return;
     }
 
-    // Export to blob
-    // fabric.js keeps the state in memory, but to export including background we use toDataURL usually
-    // but toBlob is better for Dexie.
-    // However, fabricCanvas.toDataURL works best.
-    
+    // Export PNG at full resolution
     const dataURL = fabricCanvas.toDataURL({
       format: 'png',
       quality: 1,
@@ -322,7 +314,9 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     <div className="flex flex-col md:flex-row gap-4 h-full">
       {/* Canvas Area */}
       <div className="flex-1 bg-gray-200 flex items-center justify-center p-4 rounded-lg overflow-auto">
-        <canvas ref={canvasRef} />
+        <div className="max-w-full max-h-full">
+          <canvas ref={canvasRef} />
+        </div>
       </div>
 
       {/* Controls Area */}
