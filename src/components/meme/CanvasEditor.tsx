@@ -39,6 +39,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       width: 600,
       height: 600,
       backgroundColor: '#f3f4f6',
+      enableRetinaCanvas: false, // Ensure 1:1 pixel mapping
     });
 
     setFabricCanvas(canvas);
@@ -156,22 +157,38 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           if (contentType === 'image/gif' || initialImage.toLowerCase().endsWith('.gif')) {
             try {
               console.log("Parsing GIF frames...");
-              const frames = await parseGif(initialImage);
-              console.log(`Found ${frames.length} frames`);
+              const parsedGif = await parseGif(initialImage);
+              console.log(`Found ${parsedGif.frames.length} frames, Size: ${parsedGif.width}x${parsedGif.height}`);
               
-              const imgs = frames.map((frame) => {
+              // Set canvas size to match the logical GIF size
+              fabricCanvas.setDimensions({ width: parsedGif.width, height: parsedGif.height });
+
+              const imgs = parsedGif.frames.map((frame) => {
+                // Always create a canvas of the full logical size
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = frame.dims.width;
-                tempCanvas.height = frame.dims.height;
-                tempCanvas.getContext('2d')?.putImageData(frame.imageData, 0, 0);
+                tempCanvas.width = parsedGif.width;
+                tempCanvas.height = parsedGif.height;
+                const ctx = tempCanvas.getContext('2d');
+                if (ctx) {
+                  // Put image data at its offset position (handles cases where patches don't cover full area)
+                  const patchCanvas = document.createElement('canvas');
+                  patchCanvas.width = frame.dims.width;
+                  patchCanvas.height = frame.dims.height;
+                  patchCanvas.getContext('2d')?.putImageData(frame.imageData, 0, 0);
+                  ctx.drawImage(patchCanvas, frame.dims.left, frame.dims.top);
+                }
                 
                 const img = new fabric.Image(tempCanvas);
-                // Configuration happens for each frame, but setupBackgroundImage 
-                // will set canvas size based on the last frame (which is fine as GIF frames should be same size)
-                return setupBackgroundImage(img);
+                img.originX = 'left';
+                img.originY = 'top';
+                img.left = 0;
+                img.top = 0;
+                img.selectable = false;
+                img.evented = false;
+                return img;
               });
 
-              setGifFrames(frames);
+              setGifFrames(parsedGif.frames);
               setFrameImages(imgs);
               setIsGif(true);
             } catch (err) {
@@ -239,26 +256,14 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
         });
 
         // Loop through frames
-        for (const frame of gifFrames) {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = frame.dims.width;
-          tempCanvas.height = frame.dims.height;
-          tempCanvas.getContext('2d')?.putImageData(frame.imageData, 0, 0);
-          
-          const img = new fabric.Image(tempCanvas);
-          
-          img.originX = 'left';
-          img.originY = 'top';
-          img.left = 0;
-          img.top = 0;
-          img.selectable = false;
-          img.evented = false;
+        for (let i = 0; i < gifFrames.length; i++) {
+          const img = frameImages[i];
           
           // eslint-disable-next-line react-hooks/immutability
           fabricCanvas.backgroundImage = img;
           fabricCanvas.requestRenderAll();
           
-          gif.addFrame(fabricCanvas.getElement(), { delay: frame.delay, copy: true });
+          gif.addFrame(fabricCanvas.getElement(), { delay: gifFrames[i].delay, copy: true });
         }
 
         gif.on('finished', (blob) => {

@@ -6,7 +6,13 @@ export interface GifFrame {
   dims: { width: number; height: number; top: number; left: number };
 }
 
-export async function parseGif(url: string): Promise<GifFrame[]> {
+export interface ParsedGif {
+  frames: GifFrame[];
+  width: number;
+  height: number;
+}
+
+export async function parseGif(url: string): Promise<ParsedGif> {
   const response = await fetch(url);
   const buffer = await response.arrayBuffer();
   const gif = parseGIF(buffer);
@@ -17,7 +23,6 @@ export async function parseGif(url: string): Promise<GifFrame[]> {
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i];
     
-    // Each frame.patch is already the full frame result when buildPatch is true.
     const patchData = new ImageData(
       new Uint8ClampedArray(frame.patch),
       frame.dims.width,
@@ -26,7 +31,7 @@ export async function parseGif(url: string): Promise<GifFrame[]> {
 
     resultFrames.push({
       imageData: patchData,
-      delay: Math.max(frame.delay, 20), // Ensure at least 20ms delay
+      delay: Math.max(frame.delay, 20),
       dims: { 
         width: frame.dims.width, 
         height: frame.dims.height, 
@@ -36,5 +41,9 @@ export async function parseGif(url: string): Promise<GifFrame[]> {
     });
   }
 
-  return resultFrames;
+  return {
+    frames: resultFrames,
+    width: gif.lsd.width,
+    height: gif.lsd.height
+  };
 }
