@@ -25,7 +25,14 @@ jobs:
     - name: Run tests
       run: npm run test:coverage
 
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+
+    - name: Run E2E tests
+      run: npm run test:e2e
+
     - name: Upload coverage to Codecov
+      if: ${{ secrets.CODECOV_TOKEN != '' }}
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
