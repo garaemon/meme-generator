@@ -124,7 +124,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
         const configuredImg = setupBackgroundImage(img);
         // eslint-disable-next-line react-hooks/immutability
         fabricCanvas.backgroundImage = configuredImg;
-        fabricCanvas.requestRenderAll();
+        fabricCanvas.renderAll();
       }).catch(err => {
         console.error("Failed to load image", err);
       });
@@ -132,7 +132,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
 
     if (initialState) {
       fabricCanvas.loadFromJSON(initialState).then(() => {
-        fabricCanvas.requestRenderAll();
+        fabricCanvas.renderAll();
         fabricCanvas.discardActiveObject();
       });
     } else if (initialImage) {
@@ -141,7 +141,8 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       fabricCanvas.set('backgroundColor', '#f3f4f6');
       // eslint-disable-next-line react-hooks/immutability
       fabricCanvas.backgroundImage = undefined;
-      fabricCanvas.requestRenderAll();
+      fabricCanvas.setDimensions({ width: 600, height: 600 });
+      fabricCanvas.renderAll();
       
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsGif(false);
@@ -243,6 +244,10 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     if (!fabricCanvas) {
       return;
     }
+
+    // Deselect any active object before export to avoid showing control handles
+    fabricCanvas.discardActiveObject();
+    fabricCanvas.renderAll();
     
     if (isGif && gifFrames.length > 0) {
       setIsProcessing(true);
@@ -251,8 +256,8 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           workers: 2,
           quality: 10,
           workerScript: '/gif.worker.js',
-          width: fabricCanvas.width,
-          height: fabricCanvas.height,
+          width: Math.floor(fabricCanvas.width || 0),
+          height: Math.floor(fabricCanvas.height || 0),
         });
 
         // Loop through frames
@@ -261,7 +266,8 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           
           // eslint-disable-next-line react-hooks/immutability
           fabricCanvas.backgroundImage = img;
-          fabricCanvas.requestRenderAll();
+          // Use renderAll (synchronous) to ensure background is updated before capture
+          fabricCanvas.renderAll();
           
           gif.addFrame(fabricCanvas.getElement(), { delay: gifFrames[i].delay, copy: true });
         }
