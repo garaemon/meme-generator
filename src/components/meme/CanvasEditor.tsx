@@ -26,6 +26,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
 
   const [isGif, setIsGif] = useState(false);
   const [gifFrames, setGifFrames] = useState<GifFrame[]>([]);
+  const [frameImages, setFrameImages] = useState<fabric.Image[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Initialize Canvas
@@ -65,6 +66,35 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     };
   }, []);
 
+  // Animation Loop for Editor
+  useEffect(() => {
+    if (!isGif || frameImages.length === 0 || !fabricCanvas) {
+      return;
+    }
+
+    let timeoutId: NodeJS.Timeout;
+    let currentIdx = 0;
+
+    const play = () => {
+      const img = frameImages[currentIdx];
+      // eslint-disable-next-line react-hooks/immutability
+      fabricCanvas.backgroundImage = img;
+      fabricCanvas.requestRenderAll();
+
+      const delay = gifFrames[currentIdx]?.delay || 100;
+      currentIdx = (currentIdx + 1) % frameImages.length;
+      timeoutId = setTimeout(play, delay);
+    };
+
+    play();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isGif, frameImages, fabricCanvas, gifFrames]);
+
   // Load Content (State or Image)
   useEffect(() => {
     if (!fabricCanvas) {
@@ -78,19 +108,22 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       );
       
       img.scale(scale);
-      fabricCanvas.backgroundImage = img;
-      
       img.originX = 'left';
       img.originY = 'top';
       img.left = (fabricCanvas.width! - img.width! * scale) / 2;
       img.top = (fabricCanvas.height! - img.height! * scale) / 2;
+      img.selectable = false;
+      img.evented = false;
       
-      fabricCanvas.renderAll();
+      return img;
     };
 
     const loadStaticImage = (url: string) => {
       fabric.Image.fromURL(url, { crossOrigin: 'anonymous' }).then((img) => {
-        setupBackgroundImage(img);
+        const configuredImg = setupBackgroundImage(img);
+        // eslint-disable-next-line react-hooks/immutability
+        fabricCanvas.backgroundImage = configuredImg;
+        fabricCanvas.requestRenderAll();
       }).catch(err => {
         console.error("Failed to load image", err);
       });
@@ -98,37 +131,47 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
 
     if (initialState) {
       fabricCanvas.loadFromJSON(initialState).then(() => {
-        fabricCanvas.renderAll();
-        // Reset selection if any
+        fabricCanvas.requestRenderAll();
         fabricCanvas.discardActiveObject();
       });
     } else if (initialImage) {
+      // Clear current state immediately
       fabricCanvas.clear();
       fabricCanvas.set('backgroundColor', '#f3f4f6');
-      fabricCanvas.renderAll();
+      // eslint-disable-next-line react-hooks/immutability
+      fabricCanvas.backgroundImage = undefined;
+      fabricCanvas.requestRenderAll();
       
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsGif(false);
       setGifFrames([]);
+      setFrameImages([]);
 
       // Check if GIF
       fetch(initialImage)
         .then(async (res) => {
           const contentType = res.headers.get('Content-Type');
-          if (contentType === 'image/gif') {
-            setIsGif(true);
+          console.log(`Loading image: ${initialImage}, Content-Type: ${contentType}`);
+          
+          if (contentType === 'image/gif' || initialImage.toLowerCase().endsWith('.gif')) {
             try {
+              console.log("Parsing GIF frames...");
               const frames = await parseGif(initialImage);
-              setGifFrames(frames);
-              if (frames.length > 0) {
+              console.log(`Found ${frames.length} frames`);
+              
+              const imgs = frames.map((frame) => {
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = frames[0].dims.width;
-                tempCanvas.height = frames[0].dims.height;
-                tempCanvas.getContext('2d')?.putImageData(frames[0].imageData, 0, 0);
+                tempCanvas.width = frame.dims.width;
+                tempCanvas.height = frame.dims.height;
+                tempCanvas.getContext('2d')?.putImageData(frame.imageData, 0, 0);
                 
                 const img = new fabric.Image(tempCanvas);
-                setupBackgroundImage(img);
-              }
+                return setupBackgroundImage(img);
+              });
+
+              setGifFrames(frames);
+              setFrameImages(imgs);
+              setIsGif(true);
             } catch (err) {
               console.error("Failed to parse GIF", err);
               loadStaticImage(initialImage);
@@ -212,9 +255,12 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           img.originY = 'top';
           img.left = (fabricCanvas.width! - img.width! * scale) / 2;
           img.top = (fabricCanvas.height! - img.height! * scale) / 2;
+          img.selectable = false;
+          img.evented = false;
           
-          fabricCanvas.set('backgroundImage', img);
-          fabricCanvas.renderAll();
+          // eslint-disable-next-line react-hooks/immutability
+          fabricCanvas.backgroundImage = img;
+          fabricCanvas.requestRenderAll();
           
           gif.addFrame(fabricCanvas.getElement(), { delay: frame.delay, copy: true });
         }
