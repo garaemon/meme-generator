@@ -15,7 +15,6 @@ interface CanvasEditorProps {
 export default function CanvasEditor({ initialImage, initialState, onSave }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<fabric.Canvas | null>(null);
-  // ... existing state ...
   const [selectedObject, setSelectedObject] = useState<fabric.Object | null>(null);
   const [text, setText] = useState('');
   const [color, setColor] = useState('#ffffff');
@@ -29,6 +28,8 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   const [frameImages, setFrameImages] = useState<fabric.Image[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const CANVAS_SIZE = 600;
+
   // Initialize Canvas
   useEffect(() => {
     if (!canvasRef.current) {
@@ -36,8 +37,8 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
 
     const canvas = new fabric.Canvas(canvasRef.current, {
-      width: 600,
-      height: 600,
+      width: CANVAS_SIZE,
+      height: CANVAS_SIZE,
       backgroundColor: '#f3f4f6',
       enableRetinaScaling: false, // Ensure 1:1 pixel mapping
     });
@@ -78,7 +79,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
 
     const play = () => {
       const img = frameImages[currentIdx];
-      // eslint-disable-next-line react-hooks/immutability
+       
       fabricCanvas.backgroundImage = img;
       fabricCanvas.requestRenderAll();
 
@@ -103,16 +104,17 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
 
     const setupBackgroundImage = (img: fabric.Image) => {
-      const width = img.width || 600;
-      const height = img.height || 600;
+      const width = img.width || CANVAS_SIZE;
+      const height = img.height || CANVAS_SIZE;
 
-      // Resize canvas to match image dimensions
-      fabricCanvas.setDimensions({ width, height });
+      // Calculate scale to fit in fixed size while maintaining aspect ratio
+      const scale = Math.min(CANVAS_SIZE / width, CANVAS_SIZE / height);
 
-      img.originX = 'left';
-      img.originY = 'top';
-      img.left = 0;
-      img.top = 0;
+      img.scale(scale);
+      img.originX = 'center';
+      img.originY = 'center';
+      img.left = CANVAS_SIZE / 2;
+      img.top = CANVAS_SIZE / 2;
       img.selectable = false;
       img.evented = false;
 
@@ -122,7 +124,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     const loadStaticImage = (url: string) => {
       fabric.Image.fromURL(url, { crossOrigin: 'anonymous' }).then((img) => {
         const configuredImg = setupBackgroundImage(img);
-        // eslint-disable-next-line react-hooks/immutability
+         
         fabricCanvas.backgroundImage = configuredImg;
         fabricCanvas.renderAll();
       }).catch(err => {
@@ -141,10 +143,10 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       fabricCanvas.set('backgroundColor', '#f3f4f6');
       // eslint-disable-next-line react-hooks/immutability
       fabricCanvas.backgroundImage = undefined;
-      fabricCanvas.setDimensions({ width: 600, height: 600 });
+      fabricCanvas.setDimensions({ width: CANVAS_SIZE, height: CANVAS_SIZE });
       fabricCanvas.renderAll();
 
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setIsGif(false);
       setGifFrames([]);
       setFrameImages([]);
@@ -161,8 +163,8 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
               const parsedGif = await parseGif(initialImage);
               console.log(`Found ${parsedGif.frames.length} frames, Size: ${parsedGif.width}x${parsedGif.height}`);
 
-              // Set canvas size to match the logical GIF size
-              fabricCanvas.setDimensions({ width: parsedGif.width, height: parsedGif.height });
+              // Calculate scale to fit in fixed size
+              const scale = Math.min(CANVAS_SIZE / parsedGif.width, CANVAS_SIZE / parsedGif.height);
 
               const imgs = parsedGif.frames.map((frame) => {
                 // Always create a canvas of the full logical size
@@ -180,10 +182,11 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                 }
 
                 const img = new fabric.Image(tempCanvas);
-                img.originX = 'left';
-                img.originY = 'top';
-                img.left = 0;
-                img.top = 0;
+                img.scale(scale);
+                img.originX = 'center';
+                img.originY = 'center';
+                img.left = CANVAS_SIZE / 2;
+                img.top = CANVAS_SIZE / 2;
                 img.selectable = false;
                 img.evented = false;
                 return img;
