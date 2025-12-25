@@ -19,7 +19,7 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
   return (
     <div className="w-16 md:w-64 bg-slate-900 text-white flex flex-col h-screen shrink-0">
       <div className="p-4 font-bold text-xl tracking-tighter hidden md:block border-b border-slate-800 mb-4">
-        MemeGen
+        MemeGenerator
       </div>
       <nav className="flex-1 flex flex-col gap-2 p-2">
         {navItems.map((item) => {
