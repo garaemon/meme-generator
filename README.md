@@ -47,4 +47,4 @@ A browser-based, serverless Meme Generator built with Next.js, Fabric.js, and De
 
 ## License
 
-MIT
+Apache
