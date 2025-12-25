@@ -39,7 +39,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       width: 600,
       height: 600,
       backgroundColor: '#f3f4f6',
-      enableRetinaCanvas: false, // Ensure 1:1 pixel mapping
+      enableRetinaScaling: false, // Ensure 1:1 pixel mapping
     });
 
     setFabricCanvas(canvas);
@@ -105,17 +105,17 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     const setupBackgroundImage = (img: fabric.Image) => {
       const width = img.width || 600;
       const height = img.height || 600;
-      
+
       // Resize canvas to match image dimensions
       fabricCanvas.setDimensions({ width, height });
-      
+
       img.originX = 'left';
       img.originY = 'top';
       img.left = 0;
       img.top = 0;
       img.selectable = false;
       img.evented = false;
-      
+
       return img;
     };
 
@@ -143,7 +143,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       fabricCanvas.backgroundImage = undefined;
       fabricCanvas.setDimensions({ width: 600, height: 600 });
       fabricCanvas.renderAll();
-      
+
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsGif(false);
       setGifFrames([]);
@@ -154,13 +154,13 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
         .then(async (res) => {
           const contentType = res.headers.get('Content-Type');
           console.log(`Loading image: ${initialImage}, Content-Type: ${contentType}`);
-          
+
           if (contentType === 'image/gif' || initialImage.toLowerCase().endsWith('.gif')) {
             try {
               console.log("Parsing GIF frames...");
               const parsedGif = await parseGif(initialImage);
               console.log(`Found ${parsedGif.frames.length} frames, Size: ${parsedGif.width}x${parsedGif.height}`);
-              
+
               // Set canvas size to match the logical GIF size
               fabricCanvas.setDimensions({ width: parsedGif.width, height: parsedGif.height });
 
@@ -178,7 +178,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                   patchCanvas.getContext('2d')?.putImageData(frame.imageData, 0, 0);
                   ctx.drawImage(patchCanvas, frame.dims.left, frame.dims.top);
                 }
-                
+
                 const img = new fabric.Image(tempCanvas);
                 img.originX = 'left';
                 img.originY = 'top';
@@ -248,7 +248,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     // Deselect any active object before export to avoid showing control handles
     fabricCanvas.discardActiveObject();
     fabricCanvas.renderAll();
-    
+
     if (isGif && gifFrames.length > 0) {
       setIsProcessing(true);
       try {
@@ -256,19 +256,19 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           workers: 2,
           quality: 10,
           workerScript: '/gif.worker.js',
-          width: Math.floor(fabricCanvas.width || 0),
-          height: Math.floor(fabricCanvas.height || 0),
+          width: Math.floor(fabricCanvas.getWidth() || 0),
+          height: Math.floor(fabricCanvas.getHeight() || 0),
         });
 
         // Loop through frames
         for (let i = 0; i < gifFrames.length; i++) {
           const img = frameImages[i];
-          
+
           // eslint-disable-next-line react-hooks/immutability
           fabricCanvas.backgroundImage = img;
           // Use renderAll (synchronous) to ensure background is updated before capture
           fabricCanvas.renderAll();
-          
+
           gif.addFrame(fabricCanvas.getElement(), { delay: gifFrames[i].delay, copy: true });
         }
 
@@ -279,7 +279,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          
+
           if (onSave) {
             onSave(blob, fabricCanvas.toJSON());
           }
@@ -333,7 +333,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       {/* Controls Area */}
       <div className="w-full md:w-80 bg-white p-4 shadow-lg rounded-lg flex flex-col gap-4 overflow-y-auto">
         <h2 className="text-xl font-bold mb-2 text-slate-800">Editor Tools</h2>
-        
+
         <div className="space-y-4">
           <div className="flex gap-2">
             <button onClick={addText} className="flex-1 bg-blue-500 text-white p-2 rounded hover:bg-blue-600 flex items-center justify-center gap-2">
@@ -348,24 +348,24 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
             <>
               <div>
                 <label className="block text-sm font-medium text-slate-700">Text Content</label>
-                <input 
-                  type="text" 
-                  value={text} 
+                <input
+                  type="text"
+                  value={text}
                   onChange={(e) => {
                     setText(e.target.value);
                     updateSelectedObject('text', e.target.value);
-                  }} 
+                  }}
                   className="w-full border p-2 rounded text-slate-900"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700">Font Family</label>
-                <select 
-                  value={fontFamily} 
+                <select
+                  value={fontFamily}
                   onChange={(e) => {
                     setFontFamily(e.target.value);
                     updateSelectedObject('fontFamily', e.target.value);
-                  }} 
+                  }}
                   className="w-full border p-2 rounded text-slate-900"
                 >
                   <option value="Impact">Impact</option>
@@ -377,54 +377,54 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">Color</label>
-                  <input 
-                    type="color" 
-                    value={color} 
+                  <input
+                    type="color"
+                    value={color}
                     onChange={(e) => {
                       setColor(e.target.value);
                       updateSelectedObject('fill', e.target.value);
-                    }} 
-                    className="w-full h-10" 
+                    }}
+                    className="w-full h-10"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">Size</label>
-                  <input 
-                    type="number" 
-                    value={fontSize} 
+                  <input
+                    type="number"
+                    value={fontSize}
                     onChange={(e) => {
                       const val = Number(e.target.value);
                       setFontSize(val);
                       updateSelectedObject('fontSize', val);
-                    }} 
-                    className="w-full border p-2 rounded text-slate-900" 
+                    }}
+                    className="w-full border p-2 rounded text-slate-900"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">Stroke</label>
-                  <input 
-                    type="color" 
-                    value={strokeColor} 
+                  <input
+                    type="color"
+                    value={strokeColor}
                     onChange={(e) => {
                       setStrokeColor(e.target.value);
                       updateSelectedObject('stroke', e.target.value);
-                    }} 
-                    className="w-full h-10" 
+                    }}
+                    className="w-full h-10"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">Stroke Width</label>
-                  <input 
-                    type="number" 
-                    value={strokeWidth} 
+                  <input
+                    type="number"
+                    value={strokeWidth}
                     onChange={(e) => {
                       const val = Number(e.target.value);
                       setStrokeWidth(val);
                       updateSelectedObject('strokeWidth', val);
-                    }} 
-                    className="w-full border p-2 rounded text-slate-900" 
+                    }}
+                    className="w-full border p-2 rounded text-slate-900"
                   />
                 </div>
               </div>
@@ -434,9 +434,9 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                     Select a text object to edit its properties.
             </div>
           )}
-            
+
           <hr className="my-2" />
-            
+
           <button onClick={download} disabled={isProcessing} className="w-full bg-green-600 text-white p-3 rounded font-bold hover:bg-green-700 flex items-center justify-center gap-2 disabled:opacity-50">
             {isProcessing ? (
               <>
