@@ -23,22 +23,22 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
       </div>
       <nav className="flex-1 flex flex-col gap-2 p-2">
         {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-                <button
-                    key={item.id}
-                    onClick={() => onTabChange(item.id)}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                        isActive 
-                        ? 'bg-blue-600 text-white' 
-                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                    }`}
-                >
-                    <Icon size={24} />
-                    <span className="hidden md:inline font-medium">{item.label}</span>
-                </button>
-            );
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                isActive 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Icon size={24} />
+              <span className="hidden md:inline font-medium">{item.label}</span>
+            </button>
+          );
         })}
       </nav>
       <div className="p-2 border-t border-slate-800">

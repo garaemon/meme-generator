@@ -23,7 +23,9 @@ export default function Gallery({ onSelect }: GalleryProps) {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {return;}
+    if (!file) {
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = async (event) => {

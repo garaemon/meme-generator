@@ -8,6 +8,8 @@ const eslintConfig = defineConfig([
   {
     rules: {
       curly: ["error", "all"],
+      "brace-style": ["error", "1tbs", { allowSingleLine: false }],
+      indent: ["error", 2],
     },
   },
   // Override default ignores of eslint-config-next.

@@ -19,12 +19,12 @@ export default function History({ onSelect }: HistoryProps) {
   };
 
   if (!history || history.length === 0) {
-      return (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <Clock size={48} className="mb-4 opacity-50"/>
-              <p>No history yet. Create your first meme!</p>
-          </div>
-      );
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+        <Clock size={48} className="mb-4 opacity-50"/>
+        <p>No history yet. Create your first meme!</p>
+      </div>
+    );
   }
 
   return (
@@ -38,14 +38,14 @@ export default function History({ onSelect }: HistoryProps) {
             onClick={() => onSelect(item.canvasState)}
           >
             <div className="aspect-square w-full overflow-hidden flex items-center justify-center bg-gray-100 relative">
-                <Image 
-                  src={item.thumbnail} 
-                  alt="History Item" 
-                  fill
-                  unoptimized
-                  className="object-contain"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                />
+              <Image 
+                src={item.thumbnail} 
+                alt="History Item" 
+                fill
+                unoptimized
+                className="object-contain"
+                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              />
             </div>
             <div className="p-2 flex justify-between items-center text-xs text-gray-500 border-t">
               <span>{new Date(item.createdAt).toLocaleDateString()}</span>
