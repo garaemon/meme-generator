@@ -58,7 +58,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
 
     const updateControls = () => {
       const obj = fabricCanvas.getActiveObject();
-      setSelectedObject(obj);
+      setSelectedObject(obj || null);
       if (obj && obj instanceof fabric.IText) {
         setText(obj.text || '');
         setColor(obj.fill as string || '#ffffff');
