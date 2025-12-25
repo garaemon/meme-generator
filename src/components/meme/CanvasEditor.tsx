@@ -40,12 +40,24 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       width: CANVAS_SIZE,
       height: CANVAS_SIZE,
       backgroundColor: '#f3f4f6',
-      enableRetinaScaling: false, // Ensure 1:1 pixel mapping
+      enableRetinaScaling: false,
     });
 
     setFabricCanvas(canvas);
 
-    const updateControls = (obj: fabric.Object | null) => {
+    return () => {
+      canvas.dispose();
+    };
+  }, []);
+
+  // Setup Event Listeners
+  useEffect(() => {
+    if (!fabricCanvas) {
+      return;
+    }
+
+    const updateControls = () => {
+      const obj = fabricCanvas.getActiveObject();
       setSelectedObject(obj);
       if (obj && obj instanceof fabric.IText) {
         setText(obj.text || '');
@@ -59,14 +71,18 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       }
     };
 
-    canvas.on('selection:created', (e) => updateControls(e.selected?.[0] || null));
-    canvas.on('selection:updated', (e) => updateControls(e.selected?.[0] || null));
-    canvas.on('selection:cleared', () => updateControls(null));
+    fabricCanvas.on('selection:created', updateControls);
+    fabricCanvas.on('selection:updated', updateControls);
+    fabricCanvas.on('selection:cleared', updateControls);
+    fabricCanvas.on('object:modified', updateControls);
 
     return () => {
-      canvas.dispose();
+      fabricCanvas.off('selection:created', updateControls);
+      fabricCanvas.off('selection:updated', updateControls);
+      fabricCanvas.off('selection:cleared', updateControls);
+      fabricCanvas.off('object:modified', updateControls);
     };
-  }, []);
+  }, [fabricCanvas]);
 
   // Animation Loop for Editor
   useEffect(() => {
@@ -104,19 +120,38 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
 
     const setupBackgroundImage = (img: fabric.Image) => {
-      const width = img.width || CANVAS_SIZE;
-      const height = img.height || CANVAS_SIZE;
+      const imgWidth = img.width || 1;
+      const imgHeight = img.height || 1;
+      const aspectRatio = imgWidth / imgHeight;
 
-      // Calculate scale to fit in fixed size while maintaining aspect ratio
-      const scale = Math.min(CANVAS_SIZE / width, CANVAS_SIZE / height);
+      let canvasWidth = CANVAS_SIZE;
+      let canvasHeight = CANVAS_SIZE;
 
-      img.scale(scale);
-      img.originX = 'center';
-      img.originY = 'center';
-      img.left = CANVAS_SIZE / 2;
-      img.top = CANVAS_SIZE / 2;
-      img.selectable = false;
-      img.evented = false;
+      if (aspectRatio > 1) {
+        // Landscape
+        canvasHeight = CANVAS_SIZE / aspectRatio;
+      } else {
+        // Portrait
+        canvasWidth = CANVAS_SIZE * aspectRatio;
+      }
+
+      fabricCanvas.setDimensions({ 
+        width: Math.round(canvasWidth), 
+        height: Math.round(canvasHeight) 
+      });
+
+      const scale = canvasWidth / imgWidth;
+
+      img.set({
+        scaleX: scale,
+        scaleY: scale,
+        originX: 'left',
+        originY: 'top',
+        left: 0,
+        top: 0,
+        selectable: false,
+        evented: false,
+      });
 
       return img;
     };
@@ -146,7 +181,6 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       fabricCanvas.setDimensions({ width: CANVAS_SIZE, height: CANVAS_SIZE });
       fabricCanvas.renderAll();
 
-       
       setIsGif(false);
       setGifFrames([]);
       setFrameImages([]);
@@ -161,19 +195,33 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
             try {
               console.log("Parsing GIF frames...");
               const parsedGif = await parseGif(initialImage);
-              console.log(`Found ${parsedGif.frames.length} frames, Size: ${parsedGif.width}x${parsedGif.height}`);
+              
+              const imgWidth = parsedGif.width || 1;
+              const imgHeight = parsedGif.height || 1;
+              const aspectRatio = imgWidth / imgHeight;
 
-              // Calculate scale to fit in fixed size
-              const scale = Math.min(CANVAS_SIZE / parsedGif.width, CANVAS_SIZE / parsedGif.height);
+              let canvasWidth = CANVAS_SIZE;
+              let canvasHeight = CANVAS_SIZE;
+
+              if (aspectRatio > 1) {
+                canvasHeight = CANVAS_SIZE / aspectRatio;
+              } else {
+                canvasWidth = CANVAS_SIZE * aspectRatio;
+              }
+
+              fabricCanvas.setDimensions({ 
+                width: Math.round(canvasWidth), 
+                height: Math.round(canvasHeight) 
+              });
+
+              const scale = canvasWidth / imgWidth;
 
               const imgs = parsedGif.frames.map((frame) => {
-                // Always create a canvas of the full logical size
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = parsedGif.width;
-                tempCanvas.height = parsedGif.height;
+                tempCanvas.width = imgWidth;
+                tempCanvas.height = imgHeight;
                 const ctx = tempCanvas.getContext('2d');
                 if (ctx) {
-                  // Put image data at its offset position (handles cases where patches don't cover full area)
                   const patchCanvas = document.createElement('canvas');
                   patchCanvas.width = frame.dims.width;
                   patchCanvas.height = frame.dims.height;
@@ -182,13 +230,16 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                 }
 
                 const img = new fabric.Image(tempCanvas);
-                img.scale(scale);
-                img.originX = 'center';
-                img.originY = 'center';
-                img.left = CANVAS_SIZE / 2;
-                img.top = CANVAS_SIZE / 2;
-                img.selectable = false;
-                img.evented = false;
+                img.set({
+                  scaleX: scale,
+                  scaleY: scale,
+                  originX: 'left',
+                  originY: 'top',
+                  left: 0,
+                  top: 0,
+                  selectable: false,
+                  evented: false,
+                });
                 return img;
               });
 
@@ -217,20 +268,40 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     const iText = new fabric.IText('New Text', {
       left: fabricCanvas.width! / 4,
       top: fabricCanvas.height! / 4,
-      fontFamily: 'Impact',
-      fill: '#ffffff',
-      stroke: '#000000',
-      strokeWidth: 2,
-      fontSize: Math.round(fabricCanvas.width! / 15),
+      fontFamily: fontFamily,
+      fill: color,
+      stroke: strokeColor,
+      strokeWidth: strokeWidth,
+      fontSize: fontSize || Math.round(fabricCanvas.height! / 10),
     });
     fabricCanvas.add(iText);
     fabricCanvas.setActiveObject(iText);
+    fabricCanvas.renderAll();
   };
 
   const updateSelectedObject = (key: string, value: string | number) => {
-    if (selectedObject && selectedObject instanceof fabric.IText) {
-      selectedObject.set(key, value);
-      fabricCanvas?.renderAll();
+    const activeObject = fabricCanvas?.getActiveObject();
+    if (activeObject && activeObject instanceof fabric.IText) {
+      activeObject.set(key as keyof fabric.IText, value);
+      activeObject.dirty = true;
+      fabricCanvas?.requestRenderAll();
+      
+      // Update individual states to keep UI in sync
+      if (key === 'text') {
+        setText(value as string);
+      } else if (key === 'fill') {
+        setColor(value as string);
+      } else if (key === 'stroke') {
+        setStrokeColor(value as string);
+      } else if (key === 'strokeWidth') {
+        setStrokeWidth(Number(value));
+      } else if (key === 'fontSize') {
+        setFontSize(Number(value));
+      } else if (key === 'fontFamily') {
+        setFontFamily(value as string);
+      }
+      
+      setSelectedObject(activeObject);
     }
   };
 
