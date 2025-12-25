@@ -13,9 +13,9 @@ interface GalleryProps {
 const DEFAULT_TEMPLATES = [
   { name: 'Drake Hotline Bling', url: 'https://i.imgflip.com/30b1gx.jpg' },
   { name: 'Distracted Boyfriend', url: 'https://i.imgflip.com/1ur9b0.jpg' },
-  { name: 'Thinking Shaq', url: 'https://i.imgflip.com/1vjt74.gif' },
-  { name: 'Running Away Balloon', url: 'https://i.imgflip.com/261o3j.gif' },
-  { name: 'Left Exit 12 Off Ramp', url: 'https://i.imgflip.com/22bdq6.gif' },
+  { name: 'Roll Safe (Thinking Guy)', url: 'https://media.giphy.com/media/d3mlE7uhX8KFgEmY/giphy.gif' },
+  { name: 'Math Lady', url: 'https://media.giphy.com/media/APqEbxBsVlkWSuFcsL/giphy.gif' },
+  { name: 'Vince McMahon', url: 'https://media.giphy.com/media/7FyMQm2vBiTjG/giphy.gif' },
   { name: 'Mocking Spongebob', url: 'https://i.imgflip.com/1otk96.jpg' },
   { name: 'Two Buttons', url: 'https://i.imgflip.com/1g8my4.jpg' },
   { name: 'Change My Mind', url: 'https://i.imgflip.com/24y43o.jpg' },
