@@ -14,7 +14,6 @@ const DEFAULT_TEMPLATES = [
   { name: 'Drake Hotline Bling', url: 'https://i.imgflip.com/30b1gx.jpg' },
   { name: 'Distracted Boyfriend', url: 'https://i.imgflip.com/1ur9b0.jpg' },
   { name: 'Roll Safe (Thinking Guy)', url: 'https://media.giphy.com/media/d3mlE7uhX8KFgEmY/giphy.gif' },
-  { name: 'Math Lady', url: 'https://media.giphy.com/media/APqEbxBsVlkWSuFcsL/giphy.gif' },
   { name: 'Vince McMahon', url: 'https://media.giphy.com/media/7FyMQm2vBiTjG/giphy.gif' },
   { name: 'Mocking Spongebob', url: 'https://i.imgflip.com/1otk96.jpg' },
   { name: 'Two Buttons', url: 'https://i.imgflip.com/1g8my4.jpg' },
