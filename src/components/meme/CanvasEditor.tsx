@@ -2,7 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
-import { Download, Type, Trash2 } from 'lucide-react';
+import { Download, Type, Trash2, Loader2 } from 'lucide-react';
+import GIF from 'gif.js';
+import { parseGif, GifFrame } from '@/lib/gif-utils';
 
 interface CanvasEditorProps {
   initialImage?: string | null;
@@ -21,6 +23,10 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [fontSize, setFontSize] = useState(40);
   const [fontFamily, setFontFamily] = useState('Impact');
+
+  const [isGif, setIsGif] = useState(false);
+  const [gifFrames, setGifFrames] = useState<GifFrame[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Initialize Canvas
   useEffect(() => {
@@ -65,6 +71,31 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       return;
     }
 
+    const setupBackgroundImage = (img: fabric.Image) => {
+      const scale = Math.min(
+        (fabricCanvas.width || 600) / (img.width || 1),
+        (fabricCanvas.height || 600) / (img.height || 1)
+      );
+      
+      img.scale(scale);
+      fabricCanvas.backgroundImage = img;
+      
+      img.originX = 'left';
+      img.originY = 'top';
+      img.left = (fabricCanvas.width! - img.width! * scale) / 2;
+      img.top = (fabricCanvas.height! - img.height! * scale) / 2;
+      
+      fabricCanvas.renderAll();
+    };
+
+    const loadStaticImage = (url: string) => {
+      fabric.Image.fromURL(url, { crossOrigin: 'anonymous' }).then((img) => {
+        setupBackgroundImage(img);
+      }).catch(err => {
+        console.error("Failed to load image", err);
+      });
+    };
+
     if (initialState) {
       fabricCanvas.loadFromJSON(initialState).then(() => {
         fabricCanvas.renderAll();
@@ -76,27 +107,40 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       fabricCanvas.set('backgroundColor', '#f3f4f6');
       fabricCanvas.renderAll();
       
-      fabric.Image.fromURL(initialImage, { crossOrigin: 'anonymous' }).then((img) => {
-        // Scale image to fit canvas while maintaining aspect ratio
-        const scale = Math.min(
-          (fabricCanvas.width || 600) / (img.width || 1),
-          (fabricCanvas.height || 600) / (img.height || 1)
-        );
-        
-        img.scale(scale);
-        fabricCanvas.backgroundImage = img;
-        
-        // Center the background image
-        // In v6/v7 backgroundImage is just an object, positioning might need to be set on the object itself
-        img.originX = 'left';
-        img.originY = 'top';
-        img.left = (fabricCanvas.width! - img.width! * scale) / 2;
-        img.top = (fabricCanvas.height! - img.height! * scale) / 2;
-        
-        fabricCanvas.renderAll();
-      }).catch(err => {
-        console.error("Failed to load image", err);
-      });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsGif(false);
+      setGifFrames([]);
+
+      // Check if GIF
+      fetch(initialImage)
+        .then(async (res) => {
+          const contentType = res.headers.get('Content-Type');
+          if (contentType === 'image/gif') {
+            setIsGif(true);
+            try {
+              const frames = await parseGif(initialImage);
+              setGifFrames(frames);
+              if (frames.length > 0) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = frames[0].dims.width;
+                tempCanvas.height = frames[0].dims.height;
+                tempCanvas.getContext('2d')?.putImageData(frames[0].imageData, 0, 0);
+                
+                const img = new fabric.Image(tempCanvas);
+                setupBackgroundImage(img);
+              }
+            } catch (err) {
+              console.error("Failed to parse GIF", err);
+              loadStaticImage(initialImage);
+            }
+          } else {
+            loadStaticImage(initialImage);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch image info", err);
+          loadStaticImage(initialImage);
+        });
     }
   }, [fabricCanvas, initialImage, initialState]);
 
@@ -133,10 +177,71 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
   };
 
-  const download = () => {
+  const download = async () => {
     if (!fabricCanvas) {
       return;
     }
+    
+    if (isGif && gifFrames.length > 0) {
+      setIsProcessing(true);
+      try {
+        const gif = new GIF({
+          workers: 2,
+          quality: 10,
+          workerScript: '/gif.worker.js',
+          width: fabricCanvas.width,
+          height: fabricCanvas.height,
+        });
+
+        // Loop through frames
+        for (const frame of gifFrames) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = frame.dims.width;
+          tempCanvas.height = frame.dims.height;
+          tempCanvas.getContext('2d')?.putImageData(frame.imageData, 0, 0);
+          
+          const img = new fabric.Image(tempCanvas);
+          
+          // Re-apply scale and position logic
+          const scale = Math.min(
+            (fabricCanvas.width || 600) / (img.width || 1),
+            (fabricCanvas.height || 600) / (img.height || 1)
+          );
+          img.scale(scale);
+          img.originX = 'left';
+          img.originY = 'top';
+          img.left = (fabricCanvas.width! - img.width! * scale) / 2;
+          img.top = (fabricCanvas.height! - img.height! * scale) / 2;
+          
+          fabricCanvas.set('backgroundImage', img);
+          fabricCanvas.renderAll();
+          
+          gif.addFrame(fabricCanvas.getElement(), { delay: frame.delay, copy: true });
+        }
+
+        gif.on('finished', (blob) => {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `meme-${Date.now()}.gif`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          if (onSave) {
+            onSave(blob, fabricCanvas.toJSON());
+          }
+          setIsProcessing(false);
+        });
+
+        gif.render();
+      } catch (err) {
+        console.error("GIF generation failed", err);
+        setIsProcessing(false);
+        alert("Failed to generate GIF");
+      }
+      return;
+    }
+
     // Export to blob
     // fabric.js keeps the state in memory, but to export including background we use toDataURL usually
     // but toBlob is better for Dexie.
@@ -281,8 +386,16 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
             
           <hr className="my-2" />
             
-          <button onClick={download} className="w-full bg-green-600 text-white p-3 rounded font-bold hover:bg-green-700 flex items-center justify-center gap-2">
-            <Download size={20} /> Download Meme
+          <button onClick={download} disabled={isProcessing} className="w-full bg-green-600 text-white p-3 rounded font-bold hover:bg-green-700 flex items-center justify-center gap-2 disabled:opacity-50">
+            {isProcessing ? (
+              <>
+                <Loader2 size={20} className="animate-spin" /> Generating GIF...
+              </>
+            ) : (
+              <>
+                <Download size={20} /> {isGif ? 'Download GIF' : 'Download Meme'}
+              </>
+            )}
           </button>
         </div>
       </div>
