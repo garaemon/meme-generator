@@ -13,12 +13,17 @@
 # testing
 /coverage
 
-# next.js
-/.next/
+.next/
 /out/
 
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # production
-/build
+build
 
 # misc
 .DS_Store
