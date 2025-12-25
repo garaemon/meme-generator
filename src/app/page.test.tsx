@@ -4,7 +4,7 @@ import Home from './page'
 
 // Mock the components to avoid complex dependency issues in unit test
 jest.mock('@/components/layout/Navigation', () => {
-  return function DummyNavigation({ activeTab, onTabChange }: any) {
+  return function DummyNavigation({ onTabChange }: { onTabChange: (tab: string) => void }) {
     return (
       <nav data-testid="navigation">
         <button onClick={() => onTabChange('gallery')}>Gallery</button>
@@ -16,19 +16,19 @@ jest.mock('@/components/layout/Navigation', () => {
 })
 
 jest.mock('@/components/meme/Gallery', () => {
-  return function DummyGallery({ onSelect }: any) {
+  return function DummyGallery({ onSelect }: { onSelect: (url: string) => void }) {
     return <div data-testid="gallery">Gallery Component <button onClick={() => onSelect('http://example.com/image.jpg')}>Select Image</button></div>
   }
 })
 
 jest.mock('@/components/meme/History', () => {
-  return function DummyHistory({ onSelect }: any) {
+  return function DummyHistory() {
     return <div data-testid="history">History Component</div>
   }
 })
 
 jest.mock('@/components/meme/CanvasEditor', () => {
-  return function DummyCanvasEditor({ initialImage }: any) {
+  return function DummyCanvasEditor({ initialImage }: { initialImage: string | null }) {
     return <div data-testid="editor">Canvas Editor {initialImage}</div>
   }
 })
