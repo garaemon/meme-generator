@@ -24,7 +24,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
 
   // Initialize Canvas
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current) {return;}
 
     const canvas = new fabric.Canvas(canvasRef.current, {
       width: 600,
@@ -59,7 +59,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
 
   // Load Content (State or Image)
   useEffect(() => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas) {return;}
 
     if (initialState) {
       fabricCanvas.loadFromJSON(initialState).then(() => {
@@ -97,7 +97,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   }, [fabricCanvas, initialImage, initialState]);
 
   const addText = () => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas) {return;}
     const iText = new fabric.IText('New Text', {
       left: 100,
       top: 100,
@@ -128,7 +128,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   };
 
   const download = () => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas) {return;}
     // Export to blob
     // fabric.js keeps the state in memory, but to export including background we use toDataURL usually
     // but toBlob is better for Dexie.
