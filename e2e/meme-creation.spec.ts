@@ -16,10 +16,12 @@ test.describe('Meme Creation Flow', () => {
     // 3. Add first text
     await page.getByRole('button', { name: 'Add Text' }).click();
     const textInput = page.locator('input[type="text"]');
+    await expect(textInput).toHaveValue('New Text'); // Ensure it's selected and showing the default text
     await textInput.fill('First Text');
 
     // 4. Add second text
     await page.getByRole('button', { name: 'Add Text' }).click();
+    await expect(textInput).toHaveValue('New Text');
     await textInput.fill('Second Text');
 
     // 5. Move the second text so we can click the first one
@@ -34,11 +36,15 @@ test.describe('Meme Creation Flow', () => {
       await page.mouse.down();
       await page.mouse.move(startX + 100, startY + 100);
       await page.mouse.up();
+      
+      // Small delay to ensure Fabric.js state is updated
+      await page.waitForTimeout(500);
 
       // 6. Click back at the original position to select the first text
       await page.mouse.click(startX, startY);
       
       // 7. Verify and re-edit the first text
+      // We expect the input to be updated via selection:created/updated listeners
       await expect(textInput).toHaveValue('First Text');
       await textInput.fill('First Text Updated');
     }
