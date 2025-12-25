@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Image, History as HistoryIcon } from 'lucide-react';
+import { Image, History as HistoryIcon, Github } from 'lucide-react';
 
 type Tab = 'editor' | 'gallery' | 'history';
 
@@ -41,6 +41,17 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
             );
         })}
       </nav>
+      <div className="p-2 border-t border-slate-800">
+        <a
+          href="https://github.com/garaemon/meme-generator"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+        >
+          <Github size={24} />
+          <span className="hidden md:inline font-medium">GitHub</span>
+        </a>
+      </div>
     </div>
   );
 }
