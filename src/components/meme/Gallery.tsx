@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2 } from 'lucide-react';
 
 interface GalleryProps {
   onSelect: (url: string) => void;
@@ -51,10 +51,76 @@ export const DEFAULT_TEMPLATES = [
   { name: 'Futurama Fry', url: 'https://i.imgflip.com/1bgw.jpg' },
   { name: 'Leonardo Dicaprio Cheers', url: 'https://i.imgflip.com/39t1o.jpg' },
   { name: 'X, X Everywhere', url: 'https://i.imgflip.com/1ihzfe.jpg' },
+  { name: "I Bet He's Thinking About Other Women", url: 'https://i.imgflip.com/1tl71a.jpg' },
+  { name: 'The Scroll Of Truth', url: 'https://i.imgflip.com/21tqf4.jpg' },
+  { name: 'Evil Kermit', url: 'https://i.imgflip.com/1e7ql7.jpg' },
+  { name: 'Inhaling Seagull', url: 'https://i.imgflip.com/1w7ygt.jpg' },
+  { name: 'Unsettled Tom', url: 'https://i.imgflip.com/2wifvo.jpg' },
+  { name: "They're The Same Picture", url: 'https://i.imgflip.com/2za3u1.jpg' },
+  { name: 'Third World Skeptical Kid', url: 'https://i.imgflip.com/265k.jpg' },
+  { name: 'Grandma Finds The Internet', url: 'https://i.imgflip.com/1bhw.jpg' },
+  { name: 'The Rock Driving', url: 'https://i.imgflip.com/grr.jpg' },
+  { name: 'American Chopper Argument', url: 'https://i.imgflip.com/2896ro.jpg' },
+  { name: 'Look At Me', url: 'https://i.imgflip.com/d0tb7.jpg' },
+  { name: 'Finding Neverland', url: 'https://i.imgflip.com/3pnmg.jpg' },
+  { name: 'Captain Picard Facepalm', url: 'https://i.imgflip.com/wczz.jpg' },
+  { name: 'The Most Interesting Man In The World', url: 'https://i.imgflip.com/1bh8.jpg' },
+  { name: 'Bad Luck Brian', url: 'https://i.imgflip.com/1bip.jpg' },
+  { name: 'Grumpy Cat', url: 'https://i.imgflip.com/8p0a.jpg' },
+  { name: 'First World Problems', url: 'https://i.imgflip.com/1bhf.jpg' },
+  { name: 'Doge', url: 'https://i.imgflip.com/4t0m5.jpg' },
+  { name: 'Matrix Morpheus', url: 'https://i.imgflip.com/25w3.jpg' },
+  { name: 'That Would Be Great', url: 'https://i.imgflip.com/c2qn.jpg' },
+  { name: 'Y U No', url: 'https://i.imgflip.com/1bh3.jpg' },
+  { name: 'Philosoraptor', url: 'https://i.imgflip.com/1bgs.jpg' },
+  { name: 'Imagination Spongebob', url: 'https://i.imgflip.com/3i7p.jpg' },
+  { name: "But That's None Of My Business", url: 'https://i.imgflip.com/9sw43.jpg' },
+  { name: 'Brace Yourselves X is Coming', url: 'https://i.imgflip.com/1bhm.jpg' },
+  { name: 'X All The Y', url: 'https://i.imgflip.com/1bh9.jpg' },
+  { name: 'Evil Toddler', url: 'https://i.imgflip.com/51s5.jpg' },
+  { name: 'Star Wars Yoda', url: 'https://i.imgflip.com/8k0sa.jpg' },
+  { name: 'Sleeping Shaq', url: 'https://i.imgflip.com/1nck6k.jpg' },
+  { name: 'Hard To Swallow Pills', url: 'https://i.imgflip.com/271ps6.jpg' },
+  { name: 'Trump Bill Signing', url: 'https://i.imgflip.com/1ii4oc.jpg' },
+  { name: 'Guy Holding Cardboard Sign', url: 'https://i.imgflip.com/3l60ph.jpg' },
+  { name: 'Spider-Man Pointing at Spider-Man', url: 'https://i.imgflip.com/1tkjq9.jpg' },
+  { name: 'Megamind Peeking', url: 'https://i.imgflip.com/64sz4u.png' },
+  { name: "This Is Where I'd Put My Trophy If I Had One", url: 'https://i.imgflip.com/1wz1x.jpg' },
+  { name: 'Laughing Leo', url: 'https://i.imgflip.com/4acd7j.png' },
+  { name: "They Don't Know", url: 'https://i.imgflip.com/4pn1an.png' },
+  { name: 'Spongebob Ight Imma Head Out', url: 'https://i.imgflip.com/392xtu.jpg' },
+  { name: 'Domino Effect', url: 'https://i.imgflip.com/2oo7h0.jpg' },
+  { name: 'Car Salesman Slaps Roof Of Car', url: 'https://i.imgflip.com/2d3al6.jpg' },
+  { name: 'Too Damn High', url: 'https://i.imgflip.com/1bik.jpg' },
+  { name: "Don't You Squidward", url: 'https://i.imgflip.com/26br.jpg' },
+  { name: 'Creepy Condescending Wonka', url: 'https://i.imgflip.com/1bim.jpg' },
+  { name: 'Yo Dawg Heard You', url: 'https://i.imgflip.com/26hg.jpg' },
+  { name: 'Who Would Win?', url: 'https://i.imgflip.com/1ooaki.jpg' },
+  { name: 'You Guys Are Getting Paid', url: 'https://i.imgflip.com/2xscjb.png' },
+  { name: 'Jack Sparrow Being Chased', url: 'https://i.imgflip.com/9vct.jpg' },
+  { name: 'All My Homies Hate', url: 'https://i.imgflip.com/3kwur5.jpg' },
+  { name: 'Mother Ignoring Kid Drowning In A Pool', url: 'https://i.imgflip.com/46hhvr.jpg' },
+  { name: 'Marked Safe From', url: 'https://i.imgflip.com/2odckz.jpg' },
+  { name: 'Scumbag Steve', url: 'https://i.imgflip.com/1bgy.jpg' },
+  { name: 'Good Guy Greg', url: 'https://i.imgflip.com/1bgx.jpg' },
+  { name: 'Two Guys On A Bus', url: 'https://i.imgflip.com/5ru4ym.jpg' },
 ];
 
 export default function Gallery({ onSelect }: GalleryProps) {
   const templates = useLiveQuery(() => db.templates.toArray());
+  const [query, setQuery] = useState('');
+  const [brokenUrls, setBrokenUrls] = useState<Set<string>>(new Set());
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const matchesQuery = (name: string) => name.toLowerCase().includes(normalizedQuery);
+  const visibleDefaultTemplates = DEFAULT_TEMPLATES.filter(
+    (tmpl) => !brokenUrls.has(tmpl.url) && matchesQuery(tmpl.name)
+  );
+  const visibleUserTemplates = templates?.filter((tmpl) => matchesQuery(tmpl.name));
+
+  const markBroken = (url: string) => {
+    setBrokenUrls((prev) => new Set(prev).add(url));
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,9 +165,21 @@ export default function Gallery({ onSelect }: GalleryProps) {
         </label>
       </div>
 
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search templates..."
+          aria-label="Search templates"
+          className="w-full border rounded pl-9 pr-3 py-2 text-slate-800"
+        />
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {/* Default Templates (Static for now, could be seeded to DB) */}
-        {DEFAULT_TEMPLATES.map((tmpl) => (
+        {visibleDefaultTemplates.map((tmpl) => (
           <div 
             key={tmpl.url} 
             className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow relative group bg-white"
@@ -115,6 +193,7 @@ export default function Gallery({ onSelect }: GalleryProps) {
                 unoptimized={isGif(tmpl.url)}
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                onError={() => markBroken(tmpl.url)}
               />
             </div>
             <div className="p-2 bg-white">
@@ -124,7 +203,7 @@ export default function Gallery({ onSelect }: GalleryProps) {
         ))}
 
         {/* User Templates */}
-        {templates?.map((tmpl) => (
+        {visibleUserTemplates?.map((tmpl) => (
           <div 
             key={tmpl.id} 
             className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow relative group bg-white"

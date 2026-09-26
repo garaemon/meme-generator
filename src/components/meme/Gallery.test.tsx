@@ -60,6 +60,24 @@ describe('Gallery Component', () => {
     expect(new Set(urls).size).toBe(urls.length)
   })
 
+  it('filters templates by search query', () => {
+    render(<Gallery onSelect={mockOnSelect} />)
+
+    fireEvent.change(screen.getByLabelText('Search templates'), { target: { value: 'pikachu' } })
+
+    expect(screen.getByText('Surprised Pikachu')).toBeInTheDocument()
+    expect(screen.queryByText('Drake Hotline Bling')).not.toBeInTheDocument()
+  })
+
+  it('hides a default template whose image fails to load', () => {
+    render(<Gallery onSelect={mockOnSelect} />)
+
+    fireEvent.error(screen.getByAltText('Drake Hotline Bling'))
+
+    expect(screen.queryByText('Drake Hotline Bling')).not.toBeInTheDocument()
+    expect(screen.getByText('Two Buttons')).toBeInTheDocument()
+  })
+
   it('calls onSelect when a default template is clicked', () => {
     render(<Gallery onSelect={mockOnSelect} />)
     
