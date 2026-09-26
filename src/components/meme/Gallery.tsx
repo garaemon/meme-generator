@@ -10,7 +10,7 @@ interface GalleryProps {
   onSelect: (url: string) => void;
 }
 
-const DEFAULT_TEMPLATES = [
+export const DEFAULT_TEMPLATES = [
   { name: 'Drake Hotline Bling', url: 'https://i.imgflip.com/30b1gx.jpg' },
   { name: 'Distracted Boyfriend', url: 'https://i.imgflip.com/1ur9b0.jpg' },
   { name: 'Roll Safe (Thinking Guy)', url: 'https://media.giphy.com/media/d3mlE7uhX8KFgEmY/giphy.gif' },
@@ -18,6 +18,39 @@ const DEFAULT_TEMPLATES = [
   { name: 'Mocking Spongebob', url: 'https://i.imgflip.com/1otk96.jpg' },
   { name: 'Two Buttons', url: 'https://i.imgflip.com/1g8my4.jpg' },
   { name: 'Change My Mind', url: 'https://i.imgflip.com/24y43o.jpg' },
+  { name: 'Woman Yelling At Cat', url: 'https://i.imgflip.com/345v97.jpg' },
+  { name: 'Expanding Brain', url: 'https://i.imgflip.com/1jwhww.jpg' },
+  { name: 'Left Exit 12 Off Ramp', url: 'https://i.imgflip.com/22bdq6.jpg' },
+  { name: 'Running Away Balloon', url: 'https://i.imgflip.com/261o3j.jpg' },
+  { name: 'UNO Draw 25 Cards', url: 'https://i.imgflip.com/3lmzyx.jpg' },
+  { name: 'Bernie I Am Once Again Asking', url: 'https://i.imgflip.com/3oevdk.jpg' },
+  { name: 'Always Has Been', url: 'https://i.imgflip.com/46e43q.png' },
+  { name: 'Buff Doge vs. Cheems', url: 'https://i.imgflip.com/43a45p.png' },
+  { name: "Gru's Plan", url: 'https://i.imgflip.com/26jxvz.jpg' },
+  { name: 'Tuxedo Winnie The Pooh', url: 'https://i.imgflip.com/2ybua0.png' },
+  { name: 'Epic Handshake', url: 'https://i.imgflip.com/28s2gu.jpg' },
+  { name: 'Anakin Padme 4 Panel', url: 'https://i.imgflip.com/5c7lwq.png' },
+  { name: 'Trade Offer', url: 'https://i.imgflip.com/54hjww.jpg' },
+  { name: 'Panik Kalm Panik', url: 'https://i.imgflip.com/3qqcim.png' },
+  { name: 'Clown Applying Makeup', url: 'https://i.imgflip.com/38el31.jpg' },
+  { name: 'Is This A Pigeon', url: 'https://i.imgflip.com/1o00in.jpg' },
+  { name: 'Surprised Pikachu', url: 'https://i.imgflip.com/2kbn1e.jpg' },
+  { name: 'Monkey Puppet', url: 'https://i.imgflip.com/2gnnjh.jpg' },
+  { name: 'Hide the Pain Harold', url: 'https://i.imgflip.com/gk5el.jpg' },
+  { name: 'Sad Pablo Escobar', url: 'https://i.imgflip.com/1c1uej.jpg' },
+  { name: 'Batman Slapping Robin', url: 'https://i.imgflip.com/9ehk.jpg' },
+  { name: 'Waiting Skeleton', url: 'https://i.imgflip.com/2fm6x.jpg' },
+  { name: 'Boardroom Meeting Suggestion', url: 'https://i.imgflip.com/m78d.jpg' },
+  { name: 'Blank Nut Button', url: 'https://i.imgflip.com/1yxkcp.jpg' },
+  { name: 'Bike Fall', url: 'https://i.imgflip.com/1b42wl.jpg' },
+  { name: 'This Is Fine', url: 'https://i.imgflip.com/wxica.jpg' },
+  { name: 'Disaster Girl', url: 'https://i.imgflip.com/23ls.jpg' },
+  { name: 'One Does Not Simply', url: 'https://i.imgflip.com/1bij.jpg' },
+  { name: 'Success Kid', url: 'https://i.imgflip.com/1bhk.jpg' },
+  { name: 'Ancient Aliens', url: 'https://i.imgflip.com/26am.jpg' },
+  { name: 'Futurama Fry', url: 'https://i.imgflip.com/1bgw.jpg' },
+  { name: 'Leonardo Dicaprio Cheers', url: 'https://i.imgflip.com/39t1o.jpg' },
+  { name: 'X, X Everywhere', url: 'https://i.imgflip.com/1ihzfe.jpg' },
 ];
 
 export default function Gallery({ onSelect }: GalleryProps) {
