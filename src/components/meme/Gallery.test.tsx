@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
 import { render, screen, fireEvent } from '@testing-library/react'
-import Gallery from './Gallery'
+import Gallery, { DEFAULT_TEMPLATES } from './Gallery'
 
 // Mock next/image
 jest.mock('next/image', () => {
@@ -41,6 +41,40 @@ describe('Gallery Component', () => {
     render(<Gallery onSelect={mockOnSelect} />)
     
     expect(screen.getByText('Drake Hotline Bling')).toBeInTheDocument()
+    expect(screen.getByText('Two Buttons')).toBeInTheDocument()
+  })
+
+  it('renders every default template', () => {
+    render(<Gallery onSelect={mockOnSelect} />)
+
+    DEFAULT_TEMPLATES.forEach((tmpl) => {
+      expect(screen.getByText(tmpl.name)).toBeInTheDocument()
+    })
+  })
+
+  it('has unique names and URLs for default templates', () => {
+    const names = DEFAULT_TEMPLATES.map((tmpl) => tmpl.name)
+    const urls = DEFAULT_TEMPLATES.map((tmpl) => tmpl.url)
+
+    expect(new Set(names).size).toBe(names.length)
+    expect(new Set(urls).size).toBe(urls.length)
+  })
+
+  it('filters templates by search query', () => {
+    render(<Gallery onSelect={mockOnSelect} />)
+
+    fireEvent.change(screen.getByLabelText('Search templates'), { target: { value: 'pikachu' } })
+
+    expect(screen.getByText('Surprised Pikachu')).toBeInTheDocument()
+    expect(screen.queryByText('Drake Hotline Bling')).not.toBeInTheDocument()
+  })
+
+  it('hides a default template whose image fails to load', () => {
+    render(<Gallery onSelect={mockOnSelect} />)
+
+    fireEvent.error(screen.getByAltText('Drake Hotline Bling'))
+
+    expect(screen.queryByText('Drake Hotline Bling')).not.toBeInTheDocument()
     expect(screen.getByText('Two Buttons')).toBeInTheDocument()
   })
 
