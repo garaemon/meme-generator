@@ -421,9 +421,10 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           {selectedObject instanceof fabric.IText ? (
             <>
               <div>
-                <label className="block text-sm font-medium text-slate-700">Text Content</label>
-                <input
-                  type="text"
+                <label htmlFor="meme-text-content" className="block text-sm font-medium text-slate-700">Text Content</label>
+                <textarea
+                  id="meme-text-content"
+                  rows={2}
                   value={text}
                   onChange={(e) => {
                     setText(e.target.value);

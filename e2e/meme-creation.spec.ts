@@ -15,7 +15,7 @@ test.describe('Meme Creation Flow', () => {
 
     // 3. Add first text
     await page.getByRole('button', { name: 'Add Text' }).click();
-    const textInput = page.locator('input[type="text"]');
+    const textInput = page.getByLabel('Text Content');
     await expect(textInput).toHaveValue('New Text'); // Ensure it's selected and showing the default text
     await textInput.fill('First Text');
 
@@ -67,7 +67,7 @@ test.describe('Meme Creation Flow', () => {
 
     // 3. Add text
     await page.getByRole('button', { name: 'Add Text' }).click();
-    const textInput = page.locator('input[type="text"]');
+    const textInput = page.getByLabel('Text Content');
     await textInput.fill('GIF Test');
 
     // 4. Download the GIF
