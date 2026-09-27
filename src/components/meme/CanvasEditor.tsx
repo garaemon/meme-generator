@@ -314,85 +314,68 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
   };
 
+  const renderGifBlob = (canvas: fabric.Canvas): Promise<Blob> => new Promise((resolve) => {
+    const gif = new GIF({
+      workers: 2,
+      quality: 10,
+      workerScript: '/gif.worker.js',
+      width: Math.floor(canvas.getWidth() || 0),
+      height: Math.floor(canvas.getHeight() || 0),
+    });
+
+    for (let i = 0; i < gifFrames.length; i++) {
+      canvas.backgroundImage = frameImages[i];
+      // Use renderAll (synchronous) to ensure background is updated before capture
+      canvas.renderAll();
+      gif.addFrame(canvas.getElement(), { delay: gifFrames[i].delay, copy: true });
+    }
+
+    gif.on('finished', resolve);
+    gif.render();
+  });
+
+  const exportMemeBlob = async (canvas: fabric.Canvas): Promise<Blob> => {
+    // Deselect any active object before export to avoid showing control handles
+    canvas.discardActiveObject();
+    canvas.renderAll();
+
+    if (isGif && gifFrames.length > 0) {
+      setIsProcessing(true);
+      const gifBlob = await renderGifBlob(canvas).catch((err) => {
+        setIsProcessing(false);
+        throw err;
+      });
+      setIsProcessing(false);
+      return gifBlob;
+    }
+
+    const dataURL = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 1 });
+    const response = await fetch(dataURL);
+    return response.blob();
+  };
+
+  const triggerDownload = (blob: Blob) => {
+    const extension = blob.type === 'image/gif' ? 'gif' : 'png';
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `meme-${Date.now()}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const download = async () => {
     if (!fabricCanvas) {
       return;
     }
-
-    // Deselect any active object before export to avoid showing control handles
-    fabricCanvas.discardActiveObject();
-    fabricCanvas.renderAll();
-
-    if (isGif && gifFrames.length > 0) {
-      setIsProcessing(true);
-      try {
-        const gif = new GIF({
-          workers: 2,
-          quality: 10,
-          workerScript: '/gif.worker.js',
-          width: Math.floor(fabricCanvas.getWidth() || 0),
-          height: Math.floor(fabricCanvas.getHeight() || 0),
-        });
-
-        // Loop through frames
-        for (let i = 0; i < gifFrames.length; i++) {
-          const img = frameImages[i];
-
-          // eslint-disable-next-line react-hooks/immutability
-          fabricCanvas.backgroundImage = img;
-          // Use renderAll (synchronous) to ensure background is updated before capture
-          fabricCanvas.renderAll();
-
-          gif.addFrame(fabricCanvas.getElement(), { delay: gifFrames[i].delay, copy: true });
-        }
-
-        gif.on('finished', (blob) => {
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = `meme-${Date.now()}.gif`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          if (onSave) {
-            onSave(blob, fabricCanvas.toJSON());
-          }
-          setIsProcessing(false);
-        });
-
-        gif.render();
-      } catch (err) {
-        console.error("GIF generation failed", err);
-        setIsProcessing(false);
-        alert("Failed to generate GIF");
-      }
-      return;
+    try {
+      const blob = await exportMemeBlob(fabricCanvas);
+      triggerDownload(blob);
+      onSave?.(blob, fabricCanvas.toJSON());
+    } catch (err) {
+      console.error('Meme export failed', err);
+      alert('Failed to export meme');
     }
-
-    // Export PNG at full resolution
-    const dataURL = fabricCanvas.toDataURL({
-      format: 'png',
-      quality: 1,
-      multiplier: 1
-    });
-
-    // Convert DataURL to Blob for DB
-    fetch(dataURL)
-      .then(res => res.blob())
-      .then(blob => {
-        // Trigger download
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = `meme-${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Save to history
-        if (onSave) {
-          onSave(blob, fabricCanvas.toJSON());
-        }
-      });
   };
 
   return (
