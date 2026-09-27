@@ -49,4 +49,22 @@ test.describe('Undo and Redo', () => {
 
     await expect(page.locator('input[type="text"]')).toHaveValue('New Text');
   });
+
+  test('should remove added text when ctrl+z pressed', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add Text' }).click();
+
+    await page.keyboard.press('ControlOrMeta+z');
+    await clickNewTextPosition(page);
+
+    await expect(page.getByText('Select a text object to edit its properties.')).toBeVisible();
+  });
+
+  test('should delete selected text when delete pressed', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add Text' }).click();
+
+    await page.keyboard.press('Delete');
+    await clickNewTextPosition(page);
+
+    await expect(page.getByText('Select a text object to edit its properties.')).toBeVisible();
+  });
 });

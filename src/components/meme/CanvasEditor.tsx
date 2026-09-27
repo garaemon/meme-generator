@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
 import { Download, Type, Trash2, Loader2, Undo2, Redo2 } from 'lucide-react';
 import GIF from 'gif.js';
 import { parseGif, GifFrame } from '@/lib/gif-utils';
 import { useCanvasHistory } from '@/hooks/useCanvasHistory';
+import { useEditorShortcuts } from '@/hooks/useEditorShortcuts';
 
 interface CanvasEditorProps {
   initialImage?: string | null;
@@ -311,14 +312,17 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
   };
 
-  const deleteSelected = () => {
-    if (fabricCanvas && selectedObject) {
-      fabricCanvas.remove(selectedObject);
+  const deleteSelected = useCallback(() => {
+    const activeObject = fabricCanvas?.getActiveObject();
+    if (fabricCanvas && activeObject) {
+      fabricCanvas.remove(activeObject);
       fabricCanvas.discardActiveObject();
       fabricCanvas.renderAll();
       setSelectedObject(null);
     }
-  };
+  }, [fabricCanvas]);
+
+  useEditorShortcuts({ onUndo: undo, onRedo: redo, onDelete: deleteSelected });
 
   const download = async () => {
     if (!fabricCanvas) {
