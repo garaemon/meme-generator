@@ -13,7 +13,10 @@ test.describe('Undo and Redo', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.getByText('Two Buttons').click();
-    await expect(page.getByText('Editor Tools')).toBeVisible();
+    // Two Buttons is portrait, so the canvas narrows once the template loads.
+    // Adding text earlier places it relative to the initial square canvas.
+    const canvas = page.locator('canvas').nth(1);
+    await expect.poll(async () => (await canvas.boundingBox())?.width ?? 600).toBeLessThan(600);
   });
 
   test('should disable undo before any edit', async ({ page }) => {
