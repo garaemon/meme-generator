@@ -11,10 +11,18 @@ async function reselectNewText(page: Page) {
   await page.mouse.click(box.x + box.width / 4 + 5, box.y + box.height / 4 + 5);
 }
 
+// Two Buttons is portrait, so the canvas narrows once the template loads.
+// Adding text earlier places it relative to the initial square canvas.
+async function openTwoButtonsTemplate(page: Page) {
+  await page.goto('/');
+  await page.getByText('Two Buttons').click();
+  const canvas = page.locator('canvas').nth(1);
+  await expect.poll(async () => (await canvas.boundingBox())?.width ?? 600).toBeLessThan(600);
+}
+
 test.describe('Text styling', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.getByText('Two Buttons').click();
+    await openTwoButtonsTemplate(page);
     await page.getByRole('button', { name: 'Add Text' }).click();
   });
 
@@ -29,8 +37,7 @@ test.describe('Text styling', () => {
 
 test.describe('Text alignment', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.getByText('Two Buttons').click();
+    await openTwoButtonsTemplate(page);
     await page.getByRole('button', { name: 'Add Text' }).click();
   });
 
@@ -45,8 +52,7 @@ test.describe('Text alignment', () => {
 
 test.describe('All caps', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.getByText('Two Buttons').click();
+    await openTwoButtonsTemplate(page);
     await page.getByRole('button', { name: 'Add Text' }).click();
   });
 
