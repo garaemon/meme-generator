@@ -69,16 +69,15 @@ export function useCanvasHistory(canvas: fabric.Canvas | null) {
     if (!canvas) {
       return;
     }
+    const restoredObjects = await fabric.util.enlivenObjects<fabric.FabricObject>(JSON.parse(snapshot));
+    // Suppress recording only around the synchronous swap. A try/finally
+    // would make the React Compiler lint skip this hook entirely.
     isRestoringRef.current = true;
-    try {
-      const restoredObjects = await fabric.util.enlivenObjects<fabric.FabricObject>(JSON.parse(snapshot));
-      canvas.discardActiveObject();
-      canvas.remove(...canvas.getObjects());
-      canvas.add(...restoredObjects);
-      canvas.requestRenderAll();
-    } finally {
-      isRestoringRef.current = false;
-    }
+    canvas.discardActiveObject();
+    canvas.remove(...canvas.getObjects());
+    canvas.add(...restoredObjects);
+    isRestoringRef.current = false;
+    canvas.requestRenderAll();
   }, [canvas]);
 
   const moveHistory = useCallback(async (step: (history: CanvasHistory) => CanvasHistory) => {
