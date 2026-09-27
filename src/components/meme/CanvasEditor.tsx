@@ -5,12 +5,18 @@ import * as fabric from 'fabric';
 import { Download, Type, Trash2, Loader2, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import GIF from 'gif.js';
 import { parseGif, GifFrame } from '@/lib/gif-utils';
+import { applyTextCase } from '@/lib/text-style';
 
 const TEXT_ALIGN_OPTIONS = [
   { value: 'left', label: 'Align left', Icon: AlignLeft },
   { value: 'center', label: 'Align center', Icon: AlignCenter },
   { value: 'right', label: 'Align right', Icon: AlignRight },
 ];
+
+const UPPERCASE_PROPERTY = 'isUppercase';
+// Serialize the all-caps flag with each text object so that history and
+// re-editing keep forcing uppercase. Fabric drops unknown properties otherwise.
+fabric.IText.customProperties = [...fabric.IText.customProperties, UPPERCASE_PROPERTY];
 
 interface CanvasEditorProps {
   initialImage?: string | null;
@@ -29,6 +35,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   const [fontSize, setFontSize] = useState(40);
   const [fontFamily, setFontFamily] = useState('Impact');
   const [textAlign, setTextAlign] = useState('center');
+  const [isUppercase, setIsUppercase] = useState(false);
 
   const [isGif, setIsGif] = useState(false);
   const [gifFrames, setGifFrames] = useState<GifFrame[]>([]);
@@ -74,6 +81,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
         setFontSize(obj.fontSize || 40);
         setFontFamily(obj.fontFamily || 'Impact');
         setTextAlign(obj.textAlign || 'left');
+        setIsUppercase(Boolean(obj.get(UPPERCASE_PROPERTY)));
       } else {
         setText('');
       }
@@ -84,7 +92,18 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     fabricCanvas.on('selection:cleared', updateControls);
     fabricCanvas.on('object:modified', updateControls);
 
+    const syncEditedText = ({ target }: { target: fabric.IText }) => {
+      const casedText = applyTextCase(target.text, Boolean(target.get(UPPERCASE_PROPERTY)));
+      if (casedText !== target.text) {
+        target.set('text', casedText);
+        fabricCanvas.requestRenderAll();
+      }
+      setText(casedText);
+    };
+    fabricCanvas.on('text:changed', syncEditedText);
+
     return () => {
+      fabricCanvas.off('text:changed', syncEditedText);
       fabricCanvas.off('selection:created', updateControls);
       fabricCanvas.off('selection:updated', updateControls);
       fabricCanvas.off('selection:cleared', updateControls);
@@ -316,6 +335,16 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
   };
 
+  const toggleUppercase = (isEnabled: boolean) => {
+    const activeObject = fabricCanvas?.getActiveObject();
+    if (!(activeObject instanceof fabric.IText)) {
+      return;
+    }
+    activeObject.set(UPPERCASE_PROPERTY, isEnabled);
+    setIsUppercase(isEnabled);
+    updateSelectedObject('text', applyTextCase(activeObject.text, isEnabled));
+  };
+
   const deleteSelected = () => {
     if (fabricCanvas && selectedObject) {
       fabricCanvas.remove(selectedObject);
@@ -438,8 +467,9 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                   rows={2}
                   value={text}
                   onChange={(e) => {
-                    setText(e.target.value);
-                    updateSelectedObject('text', e.target.value);
+                    const casedText = applyTextCase(e.target.value, isUppercase);
+                    setText(casedText);
+                    updateSelectedObject('text', casedText);
                   }}
                   className="w-full border p-2 rounded text-slate-900"
                 />
@@ -460,6 +490,14 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                   <option value="Comic Sans MS">Comic Sans</option>
                 </select>
               </div>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={isUppercase}
+                  onChange={(e) => toggleUppercase(e.target.checked)}
+                />
+                All caps
+              </label>
               <div>
                 <label className="block text-sm font-medium text-slate-700">Alignment</label>
                 <div className="flex gap-1">

@@ -42,3 +42,47 @@ test.describe('Text alignment', () => {
     await expect(page.getByRole('button', { name: 'Align right' })).toHaveAttribute('aria-pressed', 'true');
   });
 });
+
+test.describe('All caps', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.getByText('Two Buttons').click();
+    await page.getByRole('button', { name: 'Add Text' }).click();
+  });
+
+  test('should uppercase existing text when all caps checked', async ({ page }) => {
+    await page.getByLabel('All caps').check();
+
+    await expect(page.getByLabel('Text Content')).toHaveValue('NEW TEXT');
+  });
+
+  test('should uppercase typed text while all caps checked', async ({ page }) => {
+    await page.getByLabel('All caps').check();
+
+    await page.getByLabel('Text Content').fill('such meme');
+
+    await expect(page.getByLabel('Text Content')).toHaveValue('SUCH MEME');
+  });
+
+  test('should uppercase text typed directly on the canvas', async ({ page }) => {
+    await page.getByLabel('All caps').check();
+    const box = await page.locator('canvas').nth(1).boundingBox();
+    if (!box) {
+      throw new Error('Canvas is not visible');
+    }
+
+    await page.mouse.dblclick(box.x + box.width / 4 + 5, box.y + box.height / 4 + 5);
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.type('wow');
+
+    await expect(page.getByLabel('Text Content')).toHaveValue('WOW');
+  });
+
+  test('should keep all caps after reselecting text', async ({ page }) => {
+    await page.getByLabel('All caps').check();
+
+    await reselectNewText(page);
+
+    await expect(page.getByLabel('All caps')).toBeChecked();
+  });
+});
