@@ -2,9 +2,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
-import { Download, Type, Trash2, Loader2 } from 'lucide-react';
+import { Download, Type, Trash2, Loader2, Copy, Check, Share2 } from 'lucide-react';
 import GIF from 'gif.js';
 import { parseGif, GifFrame } from '@/lib/gif-utils';
+import { canCopyImageType, canShareFile, copyImageToClipboard, shareImageFile } from '@/lib/share-utils';
 
 interface CanvasEditorProps {
   initialImage?: string | null;
@@ -28,7 +29,13 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   const [frameImages, setFrameImages] = useState<fabric.Image[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const [isCopied, setIsCopied] = useState(false);
+
   const CANVAS_SIZE = 600;
+  const COPIED_FEEDBACK_MS = 2000;
+  const exportMimeType = isGif ? 'image/gif' : 'image/png';
+  const isCopySupported = canCopyImageType(exportMimeType);
+  const isShareSupported = canShareFile(new File([], `meme.${isGif ? 'gif' : 'png'}`, { type: exportMimeType }));
 
   // Initialize Canvas
   useEffect(() => {
@@ -378,6 +385,40 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
   };
 
+  const copyToClipboard = async () => {
+    if (!fabricCanvas) {
+      return;
+    }
+    const blobPromise = exportMemeBlob(fabricCanvas);
+    try {
+      await copyImageToClipboard(blobPromise, exportMimeType);
+      onSave?.(await blobPromise, fabricCanvas.toJSON());
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), COPIED_FEEDBACK_MS);
+    } catch (err) {
+      console.error('Copy to clipboard failed', err);
+      alert('Failed to copy meme to clipboard');
+    }
+  };
+
+  const share = async () => {
+    if (!fabricCanvas) {
+      return;
+    }
+    try {
+      const blob = await exportMemeBlob(fabricCanvas);
+      const file = new File([blob], `meme-${Date.now()}.${isGif ? 'gif' : 'png'}`, { type: blob.type });
+      await shareImageFile(file);
+      onSave?.(blob, fabricCanvas.toJSON());
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+      console.error('Share failed', err);
+      alert('Failed to share meme');
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-4 h-full">
       {/* Canvas Area */}
@@ -505,6 +546,20 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
               </>
             )}
           </button>
+          {(isCopySupported || isShareSupported) && (
+            <div className="flex gap-2">
+              {isCopySupported && (
+                <button onClick={copyToClipboard} disabled={isProcessing} className="flex-1 bg-slate-700 text-white p-2 rounded hover:bg-slate-800 flex items-center justify-center gap-2 disabled:opacity-50">
+                  {isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy</>}
+                </button>
+              )}
+              {isShareSupported && (
+                <button onClick={share} disabled={isProcessing} className="flex-1 bg-slate-700 text-white p-2 rounded hover:bg-slate-800 flex items-center justify-center gap-2 disabled:opacity-50">
+                  <Share2 size={16} /> Share
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
