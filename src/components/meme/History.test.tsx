@@ -4,7 +4,7 @@ import History from './History'
 
 // Mock next/image
 jest.mock('next/image', () => {
-  return function DummyImage({ fill, unoptimized, ...props }: any) {
+  return function DummyImage({ fill, unoptimized, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; unoptimized?: boolean }) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img {...props} alt={props.alt} />
   }
