@@ -2,9 +2,15 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
-import { Download, Type, Trash2, Loader2 } from 'lucide-react';
+import { Download, Type, Trash2, Loader2, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import GIF from 'gif.js';
 import { parseGif, GifFrame } from '@/lib/gif-utils';
+
+const TEXT_ALIGN_OPTIONS = [
+  { value: 'left', label: 'Align left', Icon: AlignLeft },
+  { value: 'center', label: 'Align center', Icon: AlignCenter },
+  { value: 'right', label: 'Align right', Icon: AlignRight },
+];
 
 interface CanvasEditorProps {
   initialImage?: string | null;
@@ -22,6 +28,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [fontSize, setFontSize] = useState(40);
   const [fontFamily, setFontFamily] = useState('Impact');
+  const [textAlign, setTextAlign] = useState('center');
 
   const [isGif, setIsGif] = useState(false);
   const [gifFrames, setGifFrames] = useState<GifFrame[]>([]);
@@ -66,6 +73,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
         setStrokeWidth(obj.strokeWidth || 2);
         setFontSize(obj.fontSize || 40);
         setFontFamily(obj.fontFamily || 'Impact');
+        setTextAlign(obj.textAlign || 'left');
       } else {
         setText('');
       }
@@ -273,6 +281,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       stroke: strokeColor,
       strokeWidth: strokeWidth,
       fontSize: fontSize || Math.round(fabricCanvas.height! / 10),
+      textAlign: 'center',
     });
     fabricCanvas.add(iText);
     fabricCanvas.setActiveObject(iText);
@@ -299,6 +308,8 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
         setFontSize(Number(value));
       } else if (key === 'fontFamily') {
         setFontFamily(value as string);
+      } else if (key === 'textAlign') {
+        setTextAlign(value as string);
       }
       
       setSelectedObject(activeObject);
@@ -448,6 +459,22 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                   <option value="var(--font-anton)">Anton</option>
                   <option value="Comic Sans MS">Comic Sans</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Alignment</label>
+                <div className="flex gap-1">
+                  {TEXT_ALIGN_OPTIONS.map(({ value, label, Icon }) => (
+                    <button
+                      key={value}
+                      aria-label={label}
+                      aria-pressed={textAlign === value}
+                      onClick={() => updateSelectedObject('textAlign', value)}
+                      className={`flex-1 p-2 rounded flex items-center justify-center ${textAlign === value ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'}`}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>

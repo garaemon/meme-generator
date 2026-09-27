@@ -26,3 +26,19 @@ test.describe('Text styling', () => {
     await expect(page.getByLabel('Text Content')).toHaveValue('Line 1\nLine 2');
   });
 });
+
+test.describe('Text alignment', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.getByText('Two Buttons').click();
+    await page.getByRole('button', { name: 'Add Text' }).click();
+  });
+
+  test('should keep right alignment after reselecting text', async ({ page }) => {
+    await page.getByRole('button', { name: 'Align right' }).click();
+
+    await reselectNewText(page);
+
+    await expect(page.getByRole('button', { name: 'Align right' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
