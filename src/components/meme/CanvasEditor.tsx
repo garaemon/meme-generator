@@ -2,9 +2,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
-import { Download, Type, Trash2, Loader2 } from 'lucide-react';
+import { Download, Type, Trash2, Loader2, Undo2, Redo2 } from 'lucide-react';
 import GIF from 'gif.js';
 import { parseGif, GifFrame } from '@/lib/gif-utils';
+import { useCanvasHistory } from '@/hooks/useCanvasHistory';
 
 interface CanvasEditorProps {
   initialImage?: string | null;
@@ -27,6 +28,8 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   const [gifFrames, setGifFrames] = useState<GifFrame[]>([]);
   const [frameImages, setFrameImages] = useState<fabric.Image[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const { undo, redo, canUndo, canRedo, recordChange, resetHistory } = useCanvasHistory(fabricCanvas);
 
   const CANVAS_SIZE = 600;
 
@@ -171,6 +174,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       fabricCanvas.loadFromJSON(initialState).then(() => {
         fabricCanvas.renderAll();
         fabricCanvas.discardActiveObject();
+        resetHistory();
       });
     } else if (initialImage) {
       // Clear current state immediately
@@ -180,6 +184,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       fabricCanvas.backgroundImage = undefined;
       fabricCanvas.setDimensions({ width: CANVAS_SIZE, height: CANVAS_SIZE });
       fabricCanvas.renderAll();
+      resetHistory();
 
       setIsGif(false);
       setGifFrames([]);
@@ -259,7 +264,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           loadStaticImage(initialImage);
         });
     }
-  }, [fabricCanvas, initialImage, initialState]);
+  }, [fabricCanvas, initialImage, initialState, resetHistory]);
 
   const addText = () => {
     if (!fabricCanvas) {
@@ -285,6 +290,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       activeObject.set(key as keyof fabric.IText, value);
       activeObject.dirty = true;
       fabricCanvas?.requestRenderAll();
+      recordChange();
       
       // Update individual states to keep UI in sync
       if (key === 'text') {
@@ -415,6 +421,14 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
             </button>
             <button onClick={deleteSelected} disabled={!selectedObject} className="bg-red-500 text-white p-2 rounded hover:bg-red-600 disabled:opacity-50">
               <Trash2 size={16} />
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl+Z)" className="flex-1 bg-slate-200 text-slate-800 p-2 rounded hover:bg-slate-300 flex items-center justify-center gap-2 disabled:opacity-50">
+              <Undo2 size={16} /> Undo
+            </button>
+            <button onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl+Shift+Z)" className="flex-1 bg-slate-200 text-slate-800 p-2 rounded hover:bg-slate-300 flex items-center justify-center gap-2 disabled:opacity-50">
+              <Redo2 size={16} /> Redo
             </button>
           </div>
 
