@@ -92,3 +92,27 @@ test.describe('All caps', () => {
     await expect(page.getByLabel('All caps')).toBeChecked();
   });
 });
+
+test.describe('Text shadow', () => {
+  test.beforeEach(async ({ page }) => {
+    await openTwoButtonsTemplate(page);
+    await page.getByRole('button', { name: 'Add Text' }).click();
+  });
+
+  test('should keep shadow after reselecting text', async ({ page }) => {
+    await page.getByLabel('Shadow').check();
+
+    await reselectNewText(page);
+
+    await expect(page.getByLabel('Shadow')).toBeChecked();
+  });
+
+  test('should remove shadow after unchecking and reselecting text', async ({ page }) => {
+    await page.getByLabel('Shadow').check();
+    await page.getByLabel('Shadow').uncheck();
+
+    await reselectNewText(page);
+
+    await expect(page.getByLabel('Shadow')).not.toBeChecked();
+  });
+});

@@ -5,7 +5,7 @@ import * as fabric from 'fabric';
 import { Download, Type, Trash2, Loader2, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import GIF from 'gif.js';
 import { parseGif, GifFrame } from '@/lib/gif-utils';
-import { applyTextCase } from '@/lib/text-style';
+import { applyTextCase, isShadowEnabled, MEME_TEXT_SHADOW } from '@/lib/text-style';
 
 const TEXT_ALIGN_OPTIONS = [
   { value: 'left', label: 'Align left', Icon: AlignLeft },
@@ -36,6 +36,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   const [fontFamily, setFontFamily] = useState('Impact');
   const [textAlign, setTextAlign] = useState('center');
   const [isUppercase, setIsUppercase] = useState(false);
+  const [hasShadow, setHasShadow] = useState(false);
 
   const [isGif, setIsGif] = useState(false);
   const [gifFrames, setGifFrames] = useState<GifFrame[]>([]);
@@ -82,6 +83,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
         setFontFamily(obj.fontFamily || 'Impact');
         setTextAlign(obj.textAlign || 'left');
         setIsUppercase(Boolean(obj.get(UPPERCASE_PROPERTY)));
+        setHasShadow(isShadowEnabled(obj.shadow));
       } else {
         setText('');
       }
@@ -345,6 +347,16 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     updateSelectedObject('text', applyTextCase(activeObject.text, isEnabled));
   };
 
+  const toggleShadow = (isEnabled: boolean) => {
+    const activeObject = fabricCanvas?.getActiveObject();
+    if (!(activeObject instanceof fabric.IText)) {
+      return;
+    }
+    activeObject.set('shadow', isEnabled ? new fabric.Shadow(MEME_TEXT_SHADOW) : null);
+    fabricCanvas?.requestRenderAll();
+    setHasShadow(isEnabled);
+  };
+
   const deleteSelected = () => {
     if (fabricCanvas && selectedObject) {
       fabricCanvas.remove(selectedObject);
@@ -490,14 +502,24 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                   <option value="Comic Sans MS">Comic Sans</option>
                 </select>
               </div>
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={isUppercase}
-                  onChange={(e) => toggleUppercase(e.target.checked)}
-                />
-                All caps
-              </label>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={isUppercase}
+                    onChange={(e) => toggleUppercase(e.target.checked)}
+                  />
+                  All caps
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={hasShadow}
+                    onChange={(e) => toggleShadow(e.target.checked)}
+                  />
+                  Shadow
+                </label>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700">Alignment</label>
                 <div className="flex gap-1">
