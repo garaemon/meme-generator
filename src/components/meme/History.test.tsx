@@ -67,7 +67,9 @@ describe('History Component', () => {
     render(<History onSelect={mockOnSelect} />)
     
     const item = screen.getByAltText('History Item').closest('div.cursor-pointer')
-    if (item) fireEvent.click(item)
+    if (item) {
+      fireEvent.click(item)
+    }
     
     expect(mockOnSelect).toHaveBeenCalledWith(canvasState)
   })

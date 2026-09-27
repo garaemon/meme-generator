@@ -82,7 +82,9 @@ describe('Gallery Component', () => {
     render(<Gallery onSelect={mockOnSelect} />)
     
     const drakeTemplate = screen.getByText('Drake Hotline Bling').closest('div.cursor-pointer')
-    if (drakeTemplate) fireEvent.click(drakeTemplate)
+    if (drakeTemplate) {
+      fireEvent.click(drakeTemplate)
+    }
     
     expect(mockOnSelect).toHaveBeenCalledWith(expect.stringContaining('api/image-proxy?url='))
   })
