@@ -2,9 +2,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
-import { Download, Type, Trash2, Loader2 } from 'lucide-react';
+import { Download, Type, Trash2, Loader2, Copy, Check, Share2 } from 'lucide-react';
 import GIF from 'gif.js';
 import { parseGif, GifFrame } from '@/lib/gif-utils';
+import { canCopyImageType, canShareFile, copyImageToClipboard, shareImageFile } from '@/lib/share-utils';
 
 interface CanvasEditorProps {
   initialImage?: string | null;
@@ -28,7 +29,13 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   const [frameImages, setFrameImages] = useState<fabric.Image[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const [isCopied, setIsCopied] = useState(false);
+
   const CANVAS_SIZE = 600;
+  const COPIED_FEEDBACK_MS = 2000;
+  const exportMimeType = isGif ? 'image/gif' : 'image/png';
+  const isCopySupported = canCopyImageType(exportMimeType);
+  const isShareSupported = canShareFile(new File([], `meme.${isGif ? 'gif' : 'png'}`, { type: exportMimeType }));
 
   // Initialize Canvas
   useEffect(() => {
@@ -314,85 +321,102 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     }
   };
 
+  const renderGifBlob = (canvas: fabric.Canvas): Promise<Blob> => new Promise((resolve) => {
+    const gif = new GIF({
+      workers: 2,
+      quality: 10,
+      workerScript: '/gif.worker.js',
+      width: Math.floor(canvas.getWidth() || 0),
+      height: Math.floor(canvas.getHeight() || 0),
+    });
+
+    for (let i = 0; i < gifFrames.length; i++) {
+      canvas.backgroundImage = frameImages[i];
+      // Use renderAll (synchronous) to ensure background is updated before capture
+      canvas.renderAll();
+      gif.addFrame(canvas.getElement(), { delay: gifFrames[i].delay, copy: true });
+    }
+
+    gif.on('finished', resolve);
+    gif.render();
+  });
+
+  const exportMemeBlob = async (canvas: fabric.Canvas): Promise<Blob> => {
+    // Deselect any active object before export to avoid showing control handles
+    canvas.discardActiveObject();
+    canvas.renderAll();
+
+    if (isGif && gifFrames.length > 0) {
+      setIsProcessing(true);
+      const gifBlob = await renderGifBlob(canvas).catch((err) => {
+        setIsProcessing(false);
+        throw err;
+      });
+      setIsProcessing(false);
+      return gifBlob;
+    }
+
+    const dataURL = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 1 });
+    const response = await fetch(dataURL);
+    return response.blob();
+  };
+
+  const triggerDownload = (blob: Blob) => {
+    const extension = blob.type === 'image/gif' ? 'gif' : 'png';
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `meme-${Date.now()}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const download = async () => {
     if (!fabricCanvas) {
       return;
     }
+    try {
+      const blob = await exportMemeBlob(fabricCanvas);
+      triggerDownload(blob);
+      onSave?.(blob, fabricCanvas.toJSON());
+    } catch (err) {
+      console.error('Meme export failed', err);
+      alert('Failed to export meme');
+    }
+  };
 
-    // Deselect any active object before export to avoid showing control handles
-    fabricCanvas.discardActiveObject();
-    fabricCanvas.renderAll();
-
-    if (isGif && gifFrames.length > 0) {
-      setIsProcessing(true);
-      try {
-        const gif = new GIF({
-          workers: 2,
-          quality: 10,
-          workerScript: '/gif.worker.js',
-          width: Math.floor(fabricCanvas.getWidth() || 0),
-          height: Math.floor(fabricCanvas.getHeight() || 0),
-        });
-
-        // Loop through frames
-        for (let i = 0; i < gifFrames.length; i++) {
-          const img = frameImages[i];
-
-          // eslint-disable-next-line react-hooks/immutability
-          fabricCanvas.backgroundImage = img;
-          // Use renderAll (synchronous) to ensure background is updated before capture
-          fabricCanvas.renderAll();
-
-          gif.addFrame(fabricCanvas.getElement(), { delay: gifFrames[i].delay, copy: true });
-        }
-
-        gif.on('finished', (blob) => {
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = `meme-${Date.now()}.gif`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          if (onSave) {
-            onSave(blob, fabricCanvas.toJSON());
-          }
-          setIsProcessing(false);
-        });
-
-        gif.render();
-      } catch (err) {
-        console.error("GIF generation failed", err);
-        setIsProcessing(false);
-        alert("Failed to generate GIF");
-      }
+  const copyToClipboard = async () => {
+    if (!fabricCanvas) {
       return;
     }
+    const blobPromise = exportMemeBlob(fabricCanvas);
+    try {
+      await copyImageToClipboard(blobPromise, exportMimeType);
+      onSave?.(await blobPromise, fabricCanvas.toJSON());
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), COPIED_FEEDBACK_MS);
+    } catch (err) {
+      console.error('Copy to clipboard failed', err);
+      alert('Failed to copy meme to clipboard');
+    }
+  };
 
-    // Export PNG at full resolution
-    const dataURL = fabricCanvas.toDataURL({
-      format: 'png',
-      quality: 1,
-      multiplier: 1
-    });
-
-    // Convert DataURL to Blob for DB
-    fetch(dataURL)
-      .then(res => res.blob())
-      .then(blob => {
-        // Trigger download
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = `meme-${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Save to history
-        if (onSave) {
-          onSave(blob, fabricCanvas.toJSON());
-        }
-      });
+  const share = async () => {
+    if (!fabricCanvas) {
+      return;
+    }
+    try {
+      const blob = await exportMemeBlob(fabricCanvas);
+      const file = new File([blob], `meme-${Date.now()}.${isGif ? 'gif' : 'png'}`, { type: blob.type });
+      await shareImageFile(file);
+      onSave?.(blob, fabricCanvas.toJSON());
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+      console.error('Share failed', err);
+      alert('Failed to share meme');
+    }
   };
 
   return (
@@ -522,6 +546,20 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
               </>
             )}
           </button>
+          {(isCopySupported || isShareSupported) && (
+            <div className="flex gap-2">
+              {isCopySupported && (
+                <button onClick={copyToClipboard} disabled={isProcessing} className="flex-1 bg-slate-700 text-white p-2 rounded hover:bg-slate-800 flex items-center justify-center gap-2 disabled:opacity-50">
+                  {isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy</>}
+                </button>
+              )}
+              {isShareSupported && (
+                <button onClick={share} disabled={isProcessing} className="flex-1 bg-slate-700 text-white p-2 rounded hover:bg-slate-800 flex items-center justify-center gap-2 disabled:opacity-50">
+                  <Share2 size={16} /> Share
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

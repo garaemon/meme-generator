@@ -10,7 +10,7 @@ A browser-based, serverless Meme Generator built with Next.js, Fabric.js, and De
 *   **Rich Editor**: Drag & drop text, change fonts (Impact, Anton, etc.), colors, and outlines.
 *   **Template Gallery**: Choose from presets or upload your own images.
 *   **History & Timeline**: Automatically saves your memes. Re-edit past creations anytime.
-*   **Export**: Download your memes as PNG files.
+*   **Export**: Download your memes as PNG or GIF files, copy PNG memes to the clipboard, or share them through the native share sheet on supported devices.
 
 ## Tech Stack
 
