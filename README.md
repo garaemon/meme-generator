@@ -8,6 +8,7 @@ A browser-based, serverless Meme Generator built with Next.js, Fabric.js, and De
 
 *   **No Server/DB Required**: All data (templates, history) is stored locally in your browser using IndexedDB.
 *   **Rich Editor**: Drag & drop text, change fonts (Impact, Anton, etc.), colors, and outlines.
+*   **Undo/Redo**: Revert edits with the Undo/Redo buttons, Ctrl/Cmd+Z (undo), and Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y (redo). Press Delete or Backspace to remove the selected text.
 *   **Template Gallery**: Choose from presets or upload your own images.
 *   **History & Timeline**: Automatically saves your memes. Re-edit past creations anytime.
 *   **Export**: Download your memes as PNG or GIF files, copy PNG memes to the clipboard, or share them through the native share sheet on supported devices.
