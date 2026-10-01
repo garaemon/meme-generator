@@ -28,18 +28,18 @@ export function useEditorShortcuts({ onUndo, onRedo, onDelete }: EditorShortcutH
         return;
       }
       const hasModifier = event.ctrlKey || event.metaKey;
-      const key = event.key.toLowerCase();
-      if (hasModifier && key === 'z') {
+      const lowerCaseKey = event.key.toLowerCase();
+      if (hasModifier && lowerCaseKey === 'z') {
         event.preventDefault();
         if (event.shiftKey) {
           onRedo();
         } else {
           onUndo();
         }
-      } else if (hasModifier && key === 'y') {
+      } else if (hasModifier && lowerCaseKey === 'y') {
         event.preventDefault();
         onRedo();
-      } else if (!hasModifier && (event.key === 'Delete' || event.key === 'Backspace')) {
+      } else if (!hasModifier && (lowerCaseKey === 'delete' || lowerCaseKey === 'backspace')) {
         event.preventDefault();
         onDelete();
       }
