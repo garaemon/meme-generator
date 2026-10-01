@@ -313,10 +313,12 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   };
 
   const deleteSelected = useCallback(() => {
-    const activeObject = fabricCanvas?.getActiveObject();
-    if (fabricCanvas && activeObject) {
-      fabricCanvas.remove(activeObject);
+    // A drag selection is an ActiveSelection that is not itself on the
+    // canvas, so remove its members instead.
+    const selectedObjects = fabricCanvas?.getActiveObjects() ?? [];
+    if (fabricCanvas && selectedObjects.length > 0) {
       fabricCanvas.discardActiveObject();
+      fabricCanvas.remove(...selectedObjects);
       fabricCanvas.renderAll();
       setSelectedObject(null);
     }

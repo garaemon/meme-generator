@@ -13,6 +13,8 @@ import {
 // Coalesces bursts such as typing or dragging a color picker into one step.
 const RECORD_DEBOUNCE_MS = 300;
 
+const EMPTY_HISTORY = createHistory('[]');
+
 // Only foreground objects are serialized. The background image is a large
 // data URL, and GIF playback swaps it on every frame.
 function serializeObjects(canvas: fabric.Canvas): string {
@@ -27,9 +29,14 @@ function serializeObjects(canvas: fabric.Canvas): string {
  * `resetHistory` after loading new content so that loading is not undoable.
  */
 export function useCanvasHistory(canvas: fabric.Canvas | null) {
-  const historyRef = useRef<CanvasHistory>(createHistory('[]'));
+  const historyRef = useRef<CanvasHistory>(EMPTY_HISTORY);
   const isRestoringRef = useRef(false);
+  const restoreSequenceRef = useRef(0);
+  // The history whose present snapshot the canvas currently shows. Lags
+  // historyRef while a restore is in flight.
+  const appliedHistoryRef = useRef<CanvasHistory>(EMPTY_HISTORY);
   const pendingRecordRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDiscreteRecordQueuedRef = useRef(false);
   const [availability, setAvailability] = useState({ canUndo: false, canRedo: false });
 
   const applyHistory = useCallback((nextHistory: CanvasHistory) => {
@@ -49,7 +56,9 @@ export function useCanvasHistory(canvas: fabric.Canvas | null) {
     if (!canvas || isRestoringRef.current) {
       return;
     }
-    applyHistory(pushSnapshot(historyRef.current, serializeObjects(canvas)));
+    const nextHistory = pushSnapshot(historyRef.current, serializeObjects(canvas));
+    appliedHistoryRef.current = nextHistory;
+    applyHistory(nextHistory);
   }, [canvas, applyHistory, cancelPendingRecord]);
 
   const recordChange = useCallback(() => {
@@ -60,23 +69,66 @@ export function useCanvasHistory(canvas: fabric.Canvas | null) {
     pendingRecordRef.current = setTimeout(recordNow, RECORD_DEBOUNCE_MS);
   }, [recordNow, cancelPendingRecord]);
 
+  const recordDiscreteChange = useCallback(() => {
+    if (isRestoringRef.current || isDiscreteRecordQueuedRef.current) {
+      return;
+    }
+    // Fabric fires one event per object when several are added or removed
+    // together. A microtask runs once the synchronous burst unwinds, so the
+    // burst becomes one step before any user input can interleave.
+    isDiscreteRecordQueuedRef.current = true;
+    queueMicrotask(() => {
+      isDiscreteRecordQueuedRef.current = false;
+      recordNow();
+    });
+  }, [recordNow]);
+
   const resetHistory = useCallback(() => {
     cancelPendingRecord();
-    applyHistory(createHistory(canvas ? serializeObjects(canvas) : '[]'));
+    const initialHistory = createHistory(canvas ? serializeObjects(canvas) : '[]');
+    appliedHistoryRef.current = initialHistory;
+    applyHistory(initialHistory);
   }, [canvas, applyHistory, cancelPendingRecord]);
 
-  const restoreSnapshot = useCallback(async (snapshot: string) => {
+  const restoreSnapshot = useCallback(async (targetHistory: CanvasHistory) => {
     if (!canvas) {
       return;
     }
-    const restoredObjects = await fabric.util.enlivenObjects<fabric.FabricObject>(JSON.parse(snapshot));
+    // Only the latest restore may touch the canvas. Key auto-repeat starts
+    // several restores at once, and an older one could resolve last.
+    const restoreSequence = ++restoreSequenceRef.current;
+    const isSuperseded = () => restoreSequence !== restoreSequenceRef.current;
+    const restoredObjects = await fabric.util
+      .enlivenObjects<fabric.FabricObject>(JSON.parse(targetHistory.present))
+      .catch((error: unknown) => {
+        // A newer restore already moved the history, so rolling back here
+        // would undo that move instead of this one.
+        if (isSuperseded()) {
+          console.error('Ignoring failure of a superseded canvas restore', error);
+          return null;
+        }
+        throw error;
+      });
+    if (!restoredObjects || isSuperseded()) {
+      return;
+    }
+    const previousObjects = canvas.getObjects();
+    const activeObject = canvas.getActiveObject();
+    const activeIndex = activeObject ? previousObjects.indexOf(activeObject) : -1;
     // Suppress recording only around the synchronous swap. A try/finally
     // would make the React Compiler lint skip this hook entirely.
     isRestoringRef.current = true;
     canvas.discardActiveObject();
-    canvas.remove(...canvas.getObjects());
+    canvas.remove(...previousObjects);
     canvas.add(...restoredObjects);
+    // Reselecting fires selection events, so the property panel stays open
+    // and shows the restored values.
+    const reselectedObject = restoredObjects[activeIndex];
+    if (reselectedObject) {
+      canvas.setActiveObject(reselectedObject);
+    }
     isRestoringRef.current = false;
+    appliedHistoryRef.current = targetHistory;
     canvas.requestRenderAll();
   }, [canvas]);
 
@@ -90,7 +142,13 @@ export function useCanvasHistory(canvas: fabric.Canvas | null) {
       return;
     }
     applyHistory(nextHistory);
-    await restoreSnapshot(nextHistory.present);
+    // Roll the history back to what the canvas shows when Fabric fails to
+    // rebuild the objects. An earlier restore may have been dropped, so the
+    // history before this move can differ from the canvas.
+    await restoreSnapshot(nextHistory).catch((error: unknown) => {
+      console.error('Failed to restore canvas snapshot', error);
+      applyHistory(appliedHistoryRef.current);
+    });
   }, [recordNow, applyHistory, restoreSnapshot]);
 
   const undo = useCallback(() => moveHistory(undoSnapshot), [moveHistory]);
@@ -102,14 +160,14 @@ export function useCanvasHistory(canvas: fabric.Canvas | null) {
     }
     // Discrete actions get their own step even when a text edit follows quickly.
     const discreteEvents = ['object:added', 'object:modified', 'object:removed'] as const;
-    discreteEvents.forEach((eventName) => canvas.on(eventName, recordNow));
+    discreteEvents.forEach((eventName) => canvas.on(eventName, recordDiscreteChange));
     canvas.on('text:changed', recordChange);
     return () => {
-      discreteEvents.forEach((eventName) => canvas.off(eventName, recordNow));
+      discreteEvents.forEach((eventName) => canvas.off(eventName, recordDiscreteChange));
       canvas.off('text:changed', recordChange);
       cancelPendingRecord();
     };
-  }, [canvas, recordNow, recordChange, cancelPendingRecord]);
+  }, [canvas, recordDiscreteChange, recordChange, cancelPendingRecord]);
 
   return {
     undo,
