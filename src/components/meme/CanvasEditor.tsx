@@ -428,10 +428,10 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
             </button>
           </div>
           <div className="flex gap-2">
-            <button onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl+Z)" className="flex-1 bg-slate-200 text-slate-800 p-2 rounded hover:bg-slate-300 flex items-center justify-center gap-2 disabled:opacity-50">
+            <button onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl/Cmd+Z)" className="flex-1 bg-slate-200 text-slate-800 p-2 rounded hover:bg-slate-300 flex items-center justify-center gap-2 disabled:opacity-50">
               <Undo2 size={16} /> Undo
             </button>
-            <button onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl+Shift+Z)" className="flex-1 bg-slate-200 text-slate-800 p-2 rounded hover:bg-slate-300 flex items-center justify-center gap-2 disabled:opacity-50">
+            <button onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y)" className="flex-1 bg-slate-200 text-slate-800 p-2 rounded hover:bg-slate-300 flex items-center justify-center gap-2 disabled:opacity-50">
               <Redo2 size={16} /> Redo
             </button>
           </div>
