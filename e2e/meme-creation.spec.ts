@@ -12,6 +12,10 @@ test.describe('Meme Creation Flow', () => {
 
     // 2. Verify we are in the editor
     await expect(page.getByText('Editor Tools')).toBeVisible();
+    // Two Buttons is portrait, so the canvas narrows once the template loads.
+    // Adding text earlier places it relative to the initial square canvas.
+    const editorCanvas = page.locator('canvas').nth(1);
+    await expect.poll(async () => (await editorCanvas.boundingBox())?.width ?? 600).toBeLessThan(600);
 
     // 3. Add first text
     await page.getByRole('button', { name: 'Add Text' }).click();

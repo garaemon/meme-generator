@@ -4,7 +4,7 @@ import Gallery, { DEFAULT_TEMPLATES } from './Gallery'
 
 // Mock next/image
 jest.mock('next/image', () => {
-  return function DummyImage({ fill, unoptimized, ...props }: any) {
+  return function DummyImage({ fill, unoptimized, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; unoptimized?: boolean }) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img {...props} alt={props.alt} />
   }
@@ -82,7 +82,9 @@ describe('Gallery Component', () => {
     render(<Gallery onSelect={mockOnSelect} />)
     
     const drakeTemplate = screen.getByText('Drake Hotline Bling').closest('div.cursor-pointer')
-    if (drakeTemplate) fireEvent.click(drakeTemplate)
+    if (drakeTemplate) {
+      fireEvent.click(drakeTemplate)
+    }
     
     expect(mockOnSelect).toHaveBeenCalledWith(expect.stringContaining('api/image-proxy?url='))
   })

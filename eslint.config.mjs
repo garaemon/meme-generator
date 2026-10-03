@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
       curly: ["error", "all"],
       "brace-style": ["error", "1tbs", { allowSingleLine: false }],
       indent: ["error", 2],
+      // Allow omitting props with rest destructuring, e.g. `{ omitted, ...rest }`.
+      "@typescript-eslint/no-unused-vars": ["warn", { ignoreRestSiblings: true }],
     },
   },
   // Override default ignores of eslint-config-next.
@@ -20,6 +22,12 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "public/**",
+    // Generated artifacts and local git worktrees, which are not tracked.
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+    "blob-report/**",
+    ".worktrees/**",
   ]),
 ]);
 
