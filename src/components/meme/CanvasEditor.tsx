@@ -2,12 +2,24 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
-import { Download, Type, Trash2, Loader2, Undo2, Redo2, Copy, Check, Share2 } from 'lucide-react';
+import { Download, Type, Trash2, Loader2, Undo2, Redo2, Copy, Check, Share2, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import GIF from 'gif.js';
 import { parseGif, GifFrame } from '@/lib/gif-utils';
 import { useCanvasHistory } from '@/hooks/useCanvasHistory';
 import { useEditorShortcuts } from '@/hooks/useEditorShortcuts';
 import { canCopyImageType, canShareFile, copyImageToClipboard, shareImageFile } from '@/lib/share-utils';
+import { applyTextCase, isShadowEnabled, MEME_TEXT_SHADOW } from '@/lib/text-style';
+
+const TEXT_ALIGN_OPTIONS = [
+  { value: 'left', label: 'Align left', Icon: AlignLeft },
+  { value: 'center', label: 'Align center', Icon: AlignCenter },
+  { value: 'right', label: 'Align right', Icon: AlignRight },
+];
+
+const UPPERCASE_PROPERTY = 'isUppercase';
+// Serialize the all-caps flag with each text object so that history and
+// re-editing keep forcing uppercase. Fabric drops unknown properties otherwise.
+fabric.IText.customProperties = [...fabric.IText.customProperties, UPPERCASE_PROPERTY];
 
 interface CanvasEditorProps {
   initialImage?: string | null;
@@ -25,6 +37,9 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [fontSize, setFontSize] = useState(40);
   const [fontFamily, setFontFamily] = useState('Impact');
+  const [textAlign, setTextAlign] = useState('center');
+  const [isUppercase, setIsUppercase] = useState(false);
+  const [hasShadow, setHasShadow] = useState(false);
 
   const [isGif, setIsGif] = useState(false);
   const [gifFrames, setGifFrames] = useState<GifFrame[]>([]);
@@ -76,6 +91,9 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
         setStrokeWidth(obj.strokeWidth || 2);
         setFontSize(obj.fontSize || 40);
         setFontFamily(obj.fontFamily || 'Impact');
+        setTextAlign(obj.textAlign || 'left');
+        setIsUppercase(Boolean(obj.get(UPPERCASE_PROPERTY)));
+        setHasShadow(isShadowEnabled(obj.shadow));
       } else {
         setText('');
       }
@@ -86,7 +104,18 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
     fabricCanvas.on('selection:cleared', updateControls);
     fabricCanvas.on('object:modified', updateControls);
 
+    const syncEditedText = ({ target }: { target: fabric.IText }) => {
+      const casedText = applyTextCase(target.text, Boolean(target.get(UPPERCASE_PROPERTY)));
+      if (casedText !== target.text) {
+        target.set('text', casedText);
+        fabricCanvas.requestRenderAll();
+      }
+      setText(casedText);
+    };
+    fabricCanvas.on('text:changed', syncEditedText);
+
     return () => {
+      fabricCanvas.off('text:changed', syncEditedText);
       fabricCanvas.off('selection:created', updateControls);
       fabricCanvas.off('selection:updated', updateControls);
       fabricCanvas.off('selection:cleared', updateControls);
@@ -285,6 +314,7 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
       stroke: strokeColor,
       strokeWidth: strokeWidth,
       fontSize: fontSize || Math.round(fabricCanvas.height! / 10),
+      textAlign: 'center',
     });
     fabricCanvas.add(iText);
     fabricCanvas.setActiveObject(iText);
@@ -312,10 +342,32 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
         setFontSize(Number(value));
       } else if (key === 'fontFamily') {
         setFontFamily(value as string);
+      } else if (key === 'textAlign') {
+        setTextAlign(value as string);
       }
       
       setSelectedObject(activeObject);
     }
+  };
+
+  const toggleUppercase = (isEnabled: boolean) => {
+    const activeObject = fabricCanvas?.getActiveObject();
+    if (!(activeObject instanceof fabric.IText)) {
+      return;
+    }
+    activeObject.set(UPPERCASE_PROPERTY, isEnabled);
+    setIsUppercase(isEnabled);
+    updateSelectedObject('text', applyTextCase(activeObject.text, isEnabled));
+  };
+
+  const toggleShadow = (isEnabled: boolean) => {
+    const activeObject = fabricCanvas?.getActiveObject();
+    if (!(activeObject instanceof fabric.IText)) {
+      return;
+    }
+    activeObject.set('shadow', isEnabled ? new fabric.Shadow(MEME_TEXT_SHADOW) : null);
+    fabricCanvas?.requestRenderAll();
+    setHasShadow(isEnabled);
   };
 
   const deleteSelected = useCallback(() => {
@@ -464,13 +516,15 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
           {selectedObject instanceof fabric.IText ? (
             <>
               <div>
-                <label className="block text-sm font-medium text-slate-700">Text Content</label>
-                <input
-                  type="text"
+                <label htmlFor="meme-text-content" className="block text-sm font-medium text-slate-700">Text Content</label>
+                <textarea
+                  id="meme-text-content"
+                  rows={2}
                   value={text}
                   onChange={(e) => {
-                    setText(e.target.value);
-                    updateSelectedObject('text', e.target.value);
+                    const casedText = applyTextCase(e.target.value, isUppercase);
+                    setText(casedText);
+                    updateSelectedObject('text', casedText);
                   }}
                   className="w-full border p-2 rounded text-slate-900"
                 />
@@ -490,6 +544,40 @@ export default function CanvasEditor({ initialImage, initialState, onSave }: Can
                   <option value="var(--font-anton)">Anton</option>
                   <option value="Comic Sans MS">Comic Sans</option>
                 </select>
+              </div>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={isUppercase}
+                    onChange={(e) => toggleUppercase(e.target.checked)}
+                  />
+                  All caps
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={hasShadow}
+                    onChange={(e) => toggleShadow(e.target.checked)}
+                  />
+                  Shadow
+                </label>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Alignment</label>
+                <div className="flex gap-1">
+                  {TEXT_ALIGN_OPTIONS.map(({ value, label, Icon }) => (
+                    <button
+                      key={value}
+                      aria-label={label}
+                      aria-pressed={textAlign === value}
+                      onClick={() => updateSelectedObject('textAlign', value)}
+                      className={`flex-1 p-2 rounded flex items-center justify-center ${textAlign === value ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'}`}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>

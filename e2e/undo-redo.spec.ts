@@ -37,7 +37,7 @@ test.describe('Undo and Redo', () => {
 
   test('should revert text content when undo clicked', async ({ page }) => {
     await page.getByRole('button', { name: 'Add Text' }).click();
-    const textInput = page.locator('input[type="text"]');
+    const textInput = page.locator('#meme-text-content');
     await textInput.fill('Changed Text');
 
     await page.getByRole('button', { name: 'Undo' }).click();
@@ -48,7 +48,7 @@ test.describe('Undo and Redo', () => {
 
   test('should coalesce typed characters into one undo step', async ({ page }) => {
     await page.getByRole('button', { name: 'Add Text' }).click();
-    const textInput = page.locator('input[type="text"]');
+    const textInput = page.locator('#meme-text-content');
     // Typing over a selection avoids a separate clearing edit, which could
     // land in its own step if it ran more than the debounce before typing.
     await textInput.press('ControlOrMeta+a');
@@ -61,7 +61,7 @@ test.describe('Undo and Redo', () => {
 
   test('should keep text selected after undo', async ({ page }) => {
     await page.getByRole('button', { name: 'Add Text' }).click();
-    const textInput = page.locator('input[type="text"]');
+    const textInput = page.locator('#meme-text-content');
     await textInput.fill('Changed Text');
 
     await page.getByRole('button', { name: 'Undo' }).click();
@@ -85,7 +85,7 @@ test.describe('Undo and Redo', () => {
     await page.getByRole('button', { name: 'Redo' }).click();
     await clickNewTextPosition(page);
 
-    await expect(page.locator('input[type="text"]')).toHaveValue('New Text');
+    await expect(page.locator('#meme-text-content')).toHaveValue('New Text');
   });
 
   test('should remove added text when ctrl+z pressed', async ({ page }) => {
@@ -117,7 +117,7 @@ test.describe('Undo and Redo', () => {
     await page.getByRole('button', { name: 'Undo' }).click();
     await clickNewTextPosition(page);
 
-    await expect(page.locator('input[type="text"]')).toHaveValue('New Text');
+    await expect(page.locator('#meme-text-content')).toHaveValue('New Text');
   });
 
   test('should delete selected text when delete pressed', async ({ page }) => {
