@@ -55,8 +55,9 @@ Under `next dev` the same proxy logic (`src/lib/image-proxy.ts`) is served by
     ```bash
     npm run deploy
     ```
-*   Pushes to `main` are deployed by `.github/workflows/deploy.yml` when the
-    `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets are set.
+*   Pushes to `main` are deployed by [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)
+    (Cloudflare's Git integration), configured in the Cloudflare dashboard with
+    build command `npm run build` and deploy command `npx wrangler deploy`.
 
 ## How to Use
 
