@@ -45,3 +45,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 meme-generator-spec.md
+
+# cloudflare
+.wrangler/
