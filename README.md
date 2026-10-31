@@ -15,7 +15,8 @@ A browser-based, serverless Meme Generator built with Next.js, Fabric.js, and De
 
 ## Tech Stack
 
-*   **Framework**: Next.js 15 (App Router)
+*   **Framework**: Next.js 16 (App Router, static export)
+*   **Hosting**: Cloudflare Workers (static assets + a small Worker for the image proxy)
 *   **Language**: TypeScript
 *   **Canvas Engine**: Fabric.js (v6/v7)
 *   **Database**: Dexie.js (IndexedDB wrapper)
@@ -29,12 +30,40 @@ A browser-based, serverless Meme Generator built with Next.js, Fabric.js, and De
     npm install
     ```
 
-2.  Run the development server:
+2.  Generate the Cloudflare Workers types for `worker/` (rerun after editing
+    `wrangler.jsonc`; `npm run build` also runs this step):
+    ```bash
+    npm run cf-typegen
+    ```
+
+3.  Run the development server:
     ```bash
     npm run dev
     ```
 
-3.  Open [http://localhost:3000](http://localhost:3000) with your browser.
+4.  Open [http://localhost:3000](http://localhost:3000) with your browser.
+
+## Deployment
+
+The app is deployed to [Cloudflare Workers](https://developers.cloudflare.com/workers/).
+`next build` produces a static export in `out/`, which Workers serves as static
+assets. Only `/api/image-proxy` runs code: `worker/index.ts` fetches template
+images from the allowed hosts (imgflip and giphy) and caches them at the edge.
+Under `next dev` the same proxy logic (`src/lib/image-proxy.ts`) is served by
+`src/app/api/image-proxy/route.dev.ts` instead.
+
+*   Preview the production build locally:
+    ```bash
+    npm run preview
+    ```
+    and open [http://localhost:8787](http://localhost:8787).
+*   Deploy manually (requires `npx wrangler login`):
+    ```bash
+    npm run deploy
+    ```
+*   Pushes to `main` are deployed by [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)
+    (Cloudflare's Git integration), configured in the Cloudflare dashboard with
+    build command `npm run build` and deploy command `npx wrangler deploy`.
 
 ## How to Use
 

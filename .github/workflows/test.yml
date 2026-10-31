@@ -20,7 +20,7 @@ jobs:
     - name: Use Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version-file: '.node-version'
         cache: 'npm'
         
     - name: Install dependencies
@@ -28,6 +28,14 @@ jobs:
       
     - name: Run tests
       run: npm run test:coverage
+
+    # The static export fails to build on things tests do not catch, such as a
+    # new Route Handler. Catch them here instead of in Workers Builds after merge.
+    - name: Build static export
+      run: npm run build
+
+    - name: Validate Worker bundle and wrangler config
+      run: npx wrangler deploy --dry-run --outdir=.wrangler/dry-run
 
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps

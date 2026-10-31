@@ -1,5 +1,7 @@
 import type { Config } from 'jest'
-import nextJest from 'next/jest'
+// The .js extension is required since Node 22.18 loads this file as native
+// TypeScript with ESM resolution, and `next` has no `exports` map for `next/jest`.
+import nextJest from 'next/jest.js'
 
 const createJestConfig = nextJest({
   // Provide the path to your Next.js app to load next.config.js and .env files in your test environment

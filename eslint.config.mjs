@@ -22,12 +22,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "public/**",
-    // Generated artifacts and local git worktrees, which are not tracked.
+    // Generated artifacts, wrangler build output and types, and local git worktrees, which are not tracked.
     "coverage/**",
     "test-results/**",
     "playwright-report/**",
     "blob-report/**",
     ".worktrees/**",
+    ".wrangler/**",
+    "worker-configuration.d.ts",
   ]),
 ]);
 
