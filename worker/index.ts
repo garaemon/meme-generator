@@ -1,3 +1,11 @@
+/**
+ * Cloudflare Worker entry point (`main` in wrangler.jsonc).
+ *
+ * Workers static assets serve the Next.js export in `out/`. Only `/api/*`
+ * requests reach this Worker (`run_worker_first` in wrangler.jsonc). The
+ * Worker answers `/api/image-proxy` and hands every other path back to the
+ * asset binding, which returns the exported 404 page for unknown paths.
+ */
 import { proxyImage } from '../src/lib/image-proxy';
 
 interface Env {
@@ -13,9 +21,9 @@ async function handleImageProxy(request: Request): Promise<Response> {
   }
 
   const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-  if (cached) {
-    return cached;
+  const cachedResponse = await cache.match(request);
+  if (cachedResponse) {
+    return cachedResponse;
   }
 
   const response = await proxyImage(request.url);
