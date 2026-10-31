@@ -1,8 +1,17 @@
-// Hosts the image proxy is allowed to fetch from. Anything else is rejected so
-// the proxy cannot be abused to reach arbitrary URLs.
+/**
+ * Server-side proxy for template images, shared by the Cloudflare Worker
+ * (worker/index.ts) and the `next dev` route (src/app/api/image-proxy/route.dev.ts).
+ * Browsers taint a canvas that draws cross-origin images, so the app loads
+ * imgflip and giphy templates through this same-origin endpoint instead.
+ */
+
+// Anything outside these hosts is rejected so the proxy cannot reach arbitrary
+// URLs. giphy serves media from several subdomains (media.giphy.com,
+// i.giphy.com, media0.giphy.com, ...), hence the suffix match.
 const ALLOWED_HOSTS = ['i.imgflip.com'];
 const ALLOWED_HOST_SUFFIXES = ['.giphy.com'];
 
+/** Returns true when `rawUrl` is an https URL on one of the allowed hosts. */
 export function isAllowedImageUrl(rawUrl: string): boolean {
   let url: URL;
   try {
@@ -18,8 +27,13 @@ export function isAllowedImageUrl(rawUrl: string): boolean {
     ALLOWED_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
 }
 
-// Fetches the image referenced by the `url` query parameter of `requestUrl`.
-// Shared by the Cloudflare Worker and the Next.js dev server route.
+/**
+ * Fetches the image named by the `url` query parameter of `requestUrl`.
+ *
+ * Responds with 400 when the parameter is missing, 403 when the URL (or the
+ * URL a redirect ended on) is not an allowed host, the upstream status when the
+ * upstream fails, and 500 when the fetch itself throws.
+ */
 export async function proxyImage(requestUrl: string, fetchImpl: typeof fetch = fetch): Promise<Response> {
   const imageUrl = new URL(requestUrl).searchParams.get('url');
 
