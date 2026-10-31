@@ -13,5 +13,14 @@
   },
   "observability": {
     "enabled": true
+  },
+  // Workers Builds creates a Preview with a stable workers.dev URL for every
+  // non-production branch and posts it on the pull request. The Worker has
+  // no vars or storage bindings, so Previews need no separate settings.
+  "preview_urls": true,
+  "previews": {
+    "observability": {
+      "enabled": true
+    }
   }
 }
