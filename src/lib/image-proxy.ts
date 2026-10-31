@@ -70,7 +70,9 @@ export async function proxyImage(requestUrl: string, fetchImpl: typeof fetch = f
     headers.set('X-Content-Type-Options', 'nosniff');
     headers.set('Cache-Control', 'public, max-age=31536000, immutable');
 
-    return new Response(await response.arrayBuffer(), {
+    // Stream the body instead of buffering it; large GIFs would otherwise
+    // count against the Worker's 128 MB memory limit.
+    return new Response(response.body, {
       headers,
       status: 200,
     });
