@@ -8,10 +8,6 @@
  */
 import { proxyImage } from '../src/lib/image-proxy';
 
-interface Env {
-  ASSETS: { fetch(request: Request): Promise<Response> };
-}
-
 const IMAGE_PROXY_PATH = '/api/image-proxy';
 const CACHE_NAME = 'image-proxy';
 
@@ -33,6 +29,8 @@ async function handleImageProxy(request: Request): Promise<Response> {
   return response;
 }
 
+// `Env` and `ExecutionContext` come from worker-configuration.d.ts, which
+// `npm run cf-typegen` generates from wrangler.jsonc.
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const { pathname } = new URL(request.url);

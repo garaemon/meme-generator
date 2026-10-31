@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "preview": "next build && wrangler dev",
-    "deploy": "next build && wrangler deploy",
+    "build": "npm run cf-typegen && next build",
+    "cf-typegen": "wrangler types",
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",

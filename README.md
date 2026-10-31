@@ -30,12 +30,18 @@ A browser-based, serverless Meme Generator built with Next.js, Fabric.js, and De
     npm install
     ```
 
-2.  Run the development server:
+2.  Generate the Cloudflare Workers types for `worker/` (rerun after editing
+    `wrangler.jsonc`; `npm run build` also runs this step):
+    ```bash
+    npm run cf-typegen
+    ```
+
+3.  Run the development server:
     ```bash
     npm run dev
     ```
 
-3.  Open [http://localhost:3000](http://localhost:3000) with your browser.
+4.  Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 ## Deployment
 
