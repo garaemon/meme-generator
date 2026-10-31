@@ -64,6 +64,9 @@ Under `next dev` the same proxy logic (`src/lib/image-proxy.ts`) is served by
 *   Pushes to `main` are deployed by [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)
     (Cloudflare's Git integration), configured in the Cloudflare dashboard with
     build command `npm run build` and deploy command `npx wrangler deploy`.
+*   Pushes to any other branch create a [Worker Preview](https://developers.cloudflare.com/workers/previews/)
+    (Preview command `npx wrangler preview`). Its URL stays the same for the
+    branch and is posted as a comment on the pull request.
 
 ## How to Use
 
