@@ -88,4 +88,31 @@ describe('proxyImage', () => {
     const response = await proxyImage(buildProxyUrl('https://i.imgflip.com/a.png'), fetchImpl);
     expect(response.status).toBe(500);
   });
+
+  it.each(['text/html', 'image/svg+xml', 'IMAGE/SVG+XML; charset=utf-8'])(
+    'returns 502 when the upstream content type is %s',
+    async (contentType) => {
+      const imageUrl = 'https://i.imgflip.com/a.png';
+      const fetchImpl = jest.fn().mockResolvedValue(
+        createImageResponse(imageUrl, { headers: { 'Content-Type': contentType } }),
+      );
+      const response = await proxyImage(buildProxyUrl(imageUrl), fetchImpl);
+      expect(response.status).toBe(502);
+    },
+  );
+
+  it('returns 502 when the upstream sends no content type', async () => {
+    const imageUrl = 'https://i.imgflip.com/a.png';
+    const upstreamResponse = createImageResponse(imageUrl);
+    upstreamResponse.headers.delete('Content-Type');
+    const response = await proxyImage(buildProxyUrl(imageUrl), jest.fn().mockResolvedValue(upstreamResponse));
+    expect(response.status).toBe(502);
+  });
+
+  it('marks the proxied image as nosniff', async () => {
+    const imageUrl = 'https://i.imgflip.com/a.png';
+    const fetchImpl = jest.fn().mockResolvedValue(createImageResponse(imageUrl));
+    const response = await proxyImage(buildProxyUrl(imageUrl), fetchImpl);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
 });

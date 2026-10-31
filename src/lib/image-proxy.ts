@@ -11,6 +11,10 @@
 const ALLOWED_HOSTS = ['i.imgflip.com'];
 const ALLOWED_HOST_SUFFIXES = ['.giphy.com'];
 
+// The proxy answers from the app's own origin, so an upstream text/html or
+// image/svg+xml body would run as same-origin script.
+const RASTER_IMAGE_CONTENT_TYPE = /^image\/(?!svg)/i;
+
 /** Returns true when `rawUrl` is an https URL on one of the allowed hosts. */
 export function isAllowedImageUrl(rawUrl: string): boolean {
   let url: URL;
@@ -32,7 +36,8 @@ export function isAllowedImageUrl(rawUrl: string): boolean {
  *
  * Responds with 400 when the parameter is missing, 403 when the URL (or the
  * URL a redirect ended on) is not an allowed host, the upstream status when the
- * upstream fails, and 500 when the fetch itself throws.
+ * upstream fails, 502 when the upstream body is not a raster image, and 500
+ * when the fetch itself throws.
  */
 export async function proxyImage(requestUrl: string, fetchImpl: typeof fetch = fetch): Promise<Response> {
   const imageUrl = new URL(requestUrl).searchParams.get('url');
@@ -55,9 +60,14 @@ export async function proxyImage(requestUrl: string, fetchImpl: typeof fetch = f
       return new Response('Redirected to a URL that is not allowed', { status: 403 });
     }
 
+    const contentType = response.headers.get('Content-Type') ?? '';
+    if (!RASTER_IMAGE_CONTENT_TYPE.test(contentType)) {
+      return new Response('Upstream did not return a raster image', { status: 502 });
+    }
+
     const headers = new Headers();
-    // Copy content-type from original response or default to image/jpeg
-    headers.set('Content-Type', response.headers.get('Content-Type') || 'image/jpeg');
+    headers.set('Content-Type', contentType);
+    headers.set('X-Content-Type-Options', 'nosniff');
     headers.set('Cache-Control', 'public, max-age=31536000, immutable');
 
     return new Response(await response.arrayBuffer(), {
