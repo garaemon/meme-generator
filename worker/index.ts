@@ -11,7 +11,7 @@ import { proxyImage } from '../src/lib/image-proxy';
 const IMAGE_PROXY_PATH = '/api/image-proxy';
 const CACHE_NAME = 'image-proxy';
 
-async function handleImageProxy(request: Request): Promise<Response> {
+async function handleImageProxy(request: Request, context: ExecutionContext): Promise<Response> {
   if (request.method !== 'GET') {
     return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET' } });
   }
@@ -24,7 +24,7 @@ async function handleImageProxy(request: Request): Promise<Response> {
 
   const response = await proxyImage(request.url);
   if (response.ok) {
-    await cache.put(request, response.clone());
+    context.waitUntil(cache.put(request, response.clone()));
   }
   return response;
 }
@@ -32,10 +32,10 @@ async function handleImageProxy(request: Request): Promise<Response> {
 // `Env` and `ExecutionContext` come from worker-configuration.d.ts, which
 // `npm run cf-typegen` generates from wrangler.jsonc.
 const worker = {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, context: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(request.url);
     if (pathname === IMAGE_PROXY_PATH) {
-      return handleImageProxy(request);
+      return handleImageProxy(request, context);
     }
     return env.ASSETS.fetch(request);
   },
