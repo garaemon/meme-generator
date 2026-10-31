@@ -74,6 +74,14 @@ describe('proxyImage', () => {
     expect(response.status).toBe(403);
   });
 
+  it('returns 403 when a redirect ends on a disallowed host that errors', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(
+      createImageResponse('https://example.com/missing.png', { status: 404, statusText: 'Not Found' }),
+    );
+    const response = await proxyImage(buildProxyUrl('https://i.imgflip.com/a.png'), fetchImpl);
+    expect(response.status).toBe(403);
+  });
+
   it('passes through upstream error statuses', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(
       createImageResponse('https://i.imgflip.com/missing.png', { status: 404, statusText: 'Not Found' }),

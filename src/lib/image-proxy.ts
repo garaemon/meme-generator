@@ -52,12 +52,12 @@ export async function proxyImage(requestUrl: string, fetchImpl: typeof fetch = f
   try {
     const response = await fetchImpl(imageUrl);
 
-    if (!response.ok) {
-      return new Response(`Failed to fetch image: ${response.statusText}`, { status: response.status });
-    }
     // Redirects are followed, so check where we actually ended up.
     if (response.url && !isAllowedImageUrl(response.url)) {
       return new Response('Redirected to a URL that is not allowed', { status: 403 });
+    }
+    if (!response.ok) {
+      return new Response(`Failed to fetch image: ${response.statusText}`, { status: response.status });
     }
 
     const contentType = response.headers.get('Content-Type') ?? '';
