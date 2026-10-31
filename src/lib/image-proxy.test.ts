@@ -5,14 +5,14 @@ import { isAllowedImageUrl, proxyImage } from './image-proxy';
 
 const PROXY_URL = 'https://meme.example/api/image-proxy';
 
-function proxyUrlFor(imageUrl: string) {
+function buildProxyUrl(imageUrl: string) {
   return `${PROXY_URL}?url=${encodeURIComponent(imageUrl)}`;
 }
 
-function imageResponse(url: string, init: ResponseInit = {}) {
+function createImageResponse(url: string, responseInit: ResponseInit = {}) {
   const response = new Response(new Uint8Array([1, 2, 3]), {
     headers: { 'Content-Type': 'image/png' },
-    ...init,
+    ...responseInit,
   });
   Object.defineProperty(response, 'url', { value: url });
   return response;
@@ -40,6 +40,10 @@ describe('isAllowedImageUrl', () => {
 });
 
 describe('proxyImage', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('returns 400 when the url parameter is missing', async () => {
     const response = await proxyImage(PROXY_URL, jest.fn());
     expect(response.status).toBe(400);
@@ -47,15 +51,15 @@ describe('proxyImage', () => {
 
   it('returns 403 without fetching when the host is not allowed', async () => {
     const fetchImpl = jest.fn();
-    const response = await proxyImage(proxyUrlFor('https://example.com/a.png'), fetchImpl);
+    const response = await proxyImage(buildProxyUrl('https://example.com/a.png'), fetchImpl);
     expect(response.status).toBe(403);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('returns the image with its content type and a long cache lifetime', async () => {
     const imageUrl = 'https://i.imgflip.com/30b1gx.jpg';
-    const fetchImpl = jest.fn().mockResolvedValue(imageResponse(imageUrl));
-    const response = await proxyImage(proxyUrlFor(imageUrl), fetchImpl);
+    const fetchImpl = jest.fn().mockResolvedValue(createImageResponse(imageUrl));
+    const response = await proxyImage(buildProxyUrl(imageUrl), fetchImpl);
 
     expect(fetchImpl).toHaveBeenCalledWith(imageUrl);
     expect(response.status).toBe(200);
@@ -65,23 +69,23 @@ describe('proxyImage', () => {
   });
 
   it('rejects responses redirected to a host that is not allowed', async () => {
-    const fetchImpl = jest.fn().mockResolvedValue(imageResponse('https://example.com/a.png'));
-    const response = await proxyImage(proxyUrlFor('https://i.imgflip.com/a.png'), fetchImpl);
+    const fetchImpl = jest.fn().mockResolvedValue(createImageResponse('https://example.com/a.png'));
+    const response = await proxyImage(buildProxyUrl('https://i.imgflip.com/a.png'), fetchImpl);
     expect(response.status).toBe(403);
   });
 
   it('passes through upstream error statuses', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(
-      imageResponse('https://i.imgflip.com/missing.png', { status: 404, statusText: 'Not Found' }),
+      createImageResponse('https://i.imgflip.com/missing.png', { status: 404, statusText: 'Not Found' }),
     );
-    const response = await proxyImage(proxyUrlFor('https://i.imgflip.com/missing.png'), fetchImpl);
+    const response = await proxyImage(buildProxyUrl('https://i.imgflip.com/missing.png'), fetchImpl);
     expect(response.status).toBe(404);
   });
 
   it('returns 500 when the fetch throws', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     const fetchImpl = jest.fn().mockRejectedValue(new Error('network down'));
-    const response = await proxyImage(proxyUrlFor('https://i.imgflip.com/a.png'), fetchImpl);
+    const response = await proxyImage(buildProxyUrl('https://i.imgflip.com/a.png'), fetchImpl);
     expect(response.status).toBe(500);
   });
 });
